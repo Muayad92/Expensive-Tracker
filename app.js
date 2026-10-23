@@ -3,6 +3,7 @@ const STORAGE_KEY = "expenses";
 const CATEGORIES_KEY = "categories";
 const JAMIYAS_KEY = "jamiyas";
 const LOANS_KEY = "loans";
+const SEASONS_KEY = "seasons";
 
 // تصنيف "أخرى" لا يُحذف، وتنتقل إليه مصاريف أي تصنيف محذوف
 const OTHER_ID = "other";
@@ -74,6 +75,7 @@ function save() {
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
     localStorage.setItem(JAMIYAS_KEY, JSON.stringify(jamiyas));
     localStorage.setItem(LOANS_KEY, JSON.stringify(loans));
+    if (seasons) localStorage.setItem(SEASONS_KEY, JSON.stringify(seasons));
   } catch {
     alert("تعذّر حفظ البيانات في المتصفح.");
   }
@@ -86,6 +88,8 @@ let categories = load(CATEGORIES_KEY) || DEFAULT_CATEGORIES.map((c) => ({ ...c }
 // السلف (الادخار الجماعي) والديون (طريقة عرضها وتعديلها في ملف jamiya-loans.js)
 let jamiyas = load(JAMIYAS_KEY) || [];
 let loans = load(LOANS_KEY) || [];
+// المواسم (في ملف seasons.js). null = لم تُحفظ بعد، فتُستخدم المواسم الافتراضية
+let seasons = load(SEASONS_KEY);
 
 function ensureOtherCategory() {
   if (!categories.some((c) => c.id === OTHER_ID)) {
@@ -856,6 +860,7 @@ async function exportBackup() {
     expenses,
     jamiyas,
     loans,
+    seasons,
   };
   const saved = await deliverFile(
     JSON.stringify(backup, null, 2),
@@ -937,6 +942,7 @@ function parseBackup(text) {
     expenses: exps,
     jamiyas: cleanList(data.jamiyas, sanitizeJamiya),
     loans: cleanList(data.loans, sanitizeLoan),
+    seasons: cleanList(data.seasons, sanitizeSeason),
     skipped,
     exportedAt: data.exportedAt,
   };
@@ -1006,6 +1012,10 @@ function mergeImport(backup) {
       if (!existing.payments.some((x) => x.id === payment.id)) existing.payments.push(payment);
     }
   }
+  // المواسم: تُضاف المواسم غير الموجودة فقط
+  for (const season of backup.seasons || []) {
+    if (!seasons.some((x) => x.id === season.id)) seasons.push(season);
+  }
   return { expenses: added, jamiyas: addedJamiyas, loans: addedLoans };
 }
 
@@ -1016,6 +1026,7 @@ function replaceWithImport(backup) {
   expenses = backup.expenses.map((e) => ({ ...e, categoryId: ids.has(e.categoryId) ? e.categoryId : OTHER_ID }));
   if (backup.jamiyas) jamiyas = backup.jamiyas;
   if (backup.loans) loans = backup.loans;
+  if (backup.seasons) seasons = backup.seasons;
 }
 
 $("export-backup").addEventListener("click", exportBackup);

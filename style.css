@@ -929,3 +929,91 @@ select {
 .segmented.two {
   grid-template-columns: 1fr 1fr;
 }
+
+/* ===== المرحلة 6 ===== */
+
+/* تنبيه موسم قادم أو حالي */
+.season-alert {
+  background: #f4f1ff;
+  border: 1px solid #d6cdf7;
+}
+
+.season-alert h2 {
+  color: #4b3a99;
+}
+
+.season-alert p {
+  margin: 6px 0 0;
+}
+
+.season-alert .small-btn {
+  margin-top: 12px;
+}
+
+.season-tip {
+  font-weight: 600;
+  color: #4b3a99;
+}
+
+/* قائمة المواسم */
+.season-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.season-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.season-row:last-child {
+  border-bottom: none;
+}
+
+.season-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.season-info .muted {
+  font-size: 0.8rem;
+}
+
+.season-when {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.season-when.active {
+  color: #4b3a99;
+}
+
+.category-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+/* نموذج إضافة موسم */
+.icon-input {
+  width: 60px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 1.4rem;
+  padding: 8px 4px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 8px;
+}

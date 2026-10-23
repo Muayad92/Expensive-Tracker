@@ -42,6 +42,9 @@
     <!-- تذكير بأقساط السلفة والديون المتأخرة -->
     <button type="button" id="social-reminder" class="reminder reminder-link" hidden></button>
 
+    <!-- تنبيهات المواسم القادمة أو الحالية -->
+    <div id="season-alerts"></div>
+
     <!-- سؤال ميزان الندم: يظهر بعد يومين من المصروف -->
     <section id="regret-ask" class="card regret-ask" hidden>
       <div class="card-header">
@@ -79,6 +82,16 @@
       <p id="empty-message" class="empty"></p>
       <ul id="expense-list" class="expense-list"></ul>
       <p class="hint" id="edit-hint" hidden>اضغط على أي مصروف لتعديله.</p>
+    </section>
+
+    <!-- المواسم -->
+    <section class="card">
+      <div class="card-header">
+        <h2>📅 المواسم</h2>
+        <button type="button" id="manage-seasons" class="small-btn">⚙️ تعديل</button>
+      </div>
+      <ul id="season-list" class="season-list"></ul>
+      <p class="hint start">مواعيد المواسم الهجرية تقريبية، وقد تختلف بيوم حسب رؤية الهلال.</p>
     </section>
 
     <!-- النسخ الاحتياطي والتصدير -->
@@ -341,7 +354,55 @@
     </form>
   </dialog>
 
+  <!-- نافذة إدارة المواسم -->
+  <dialog id="seasons-dialog" class="sheet">
+    <div class="sheet-header">
+      <h2>المواسم</h2>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+    </div>
+    <label>
+      نبّهني قبل الموسم بـ
+      <select id="season-lead">
+        <option value="7">أسبوع</option>
+        <option value="14">أسبوعين</option>
+        <option value="30">شهر</option>
+        <option value="45">شهر ونصف</option>
+        <option value="60">شهرين</option>
+      </select>
+    </label>
+    <ul id="season-manage-list" class="category-list"></ul>
+    <button type="button" id="restore-seasons" class="link-btn dark" hidden>استعادة المواسم الافتراضية</button>
+
+    <form id="season-form" class="category-form">
+      <h3>إضافة موسم</h3>
+      <div class="category-form-row">
+        <input type="text" id="season-icon" class="icon-input" maxlength="4" value="📅" aria-label="أيقونة الموسم">
+        <input type="text" id="season-name" maxlength="30" required placeholder="مثال: عيد ميلاد ابني">
+      </div>
+      <div class="segmented two">
+        <label><input type="radio" name="season-calendar" value="gregorian" checked> ميلادي</label>
+        <label><input type="radio" name="season-calendar" value="hijri"> هجري</label>
+      </div>
+      <div class="form-row">
+        <label>
+          الشهر
+          <select id="season-month"></select>
+        </label>
+        <label>
+          اليوم
+          <input type="number" id="season-day" min="1" max="31" step="1" required value="1">
+        </label>
+      </div>
+      <label>
+        مدة الموسم (بالأيام)
+        <input type="number" id="season-length" min="1" max="90" step="1" required value="7">
+      </label>
+      <button type="submit" class="primary-btn">إضافة</button>
+    </form>
+  </dialog>
+
   <script src="app.js"></script>
   <script src="jamiya-loans.js"></script>
+  <script src="seasons.js"></script>
 </body>
 </html>
