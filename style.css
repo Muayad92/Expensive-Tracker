@@ -1,0 +1,137 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  background: #f3f5f9;
+  color: #222;
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1 {
+  text-align: center;
+  color: #2b4c7e;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+h3 {
+  font-size: 1rem;
+  color: #555;
+}
+
+form {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid #ccd;
+  border-radius: 6px;
+}
+
+button {
+  background: #2b4c7e;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1e3a63;
+}
+
+.month-total strong {
+  font-size: 1.4rem;
+  color: #2b4c7e;
+}
+
+.totals {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.totals li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed #ddd;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: right;
+  padding: 8px 6px;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  color: #555;
+  font-weight: 600;
+}
+
+.delete-btn {
+  background: #c0392b;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.delete-btn:hover {
+  background: #962d22;
+}
+
+.empty {
+  color: #888;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  form {
+    grid-template-columns: 1fr;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4) {
+    display: none;
+  }
+}
