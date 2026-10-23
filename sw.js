@@ -1,10 +1,11 @@
 // يحفظ ملفات التطبيق في الجوال حتى يعمل بدون إنترنت
-const CACHE = "masarifi-v4";
+const CACHE = "masarifi-v5";
 const FILES = [
   "./",
   "index.html",
   "style.css",
   "app.js",
+  "jamiya-loans.js",
   "manifest.webmanifest",
   "icons/icon.svg",
   "icons/icon-192.png",

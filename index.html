@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- ===== صفحة المصاريف ===== -->
+  <div id="view-expenses">
   <header class="app-header">
     <h1>مصاريفي</h1>
 
@@ -36,6 +38,9 @@
       <span id="backup-reminder-text"></span>
       <button type="button" id="backup-now" class="small-btn">احفظ الآن</button>
     </div>
+
+    <!-- تذكير بالجمعية والسلف المتأخرة -->
+    <button type="button" id="social-reminder" class="reminder reminder-link" hidden></button>
 
     <!-- سؤال ميزان الندم: يظهر بعد يومين من المصروف -->
     <section id="regret-ask" class="card regret-ask" hidden>
@@ -92,6 +97,59 @@
 
   <!-- زر الإضافة العائم -->
   <button type="button" id="add-btn" class="fab" aria-label="إضافة مصروف">+</button>
+  </div>
+
+  <!-- ===== صفحة الجمعية والسلف ===== -->
+  <div id="view-social" hidden>
+    <header class="app-header">
+      <h1>الجمعية والسُّلَف</h1>
+      <div class="social-summary">
+        <div>
+          <span class="summary-label">لك عند الناس</span>
+          <strong id="sum-lent">0 د.ع</strong>
+        </div>
+        <div>
+          <span class="summary-label">عليك للناس</span>
+          <strong id="sum-borrowed">0 د.ع</strong>
+        </div>
+        <div>
+          <span class="summary-label">مدّخر في الجمعيات</span>
+          <strong id="sum-jamiya">0 د.ع</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- الجمعيات -->
+      <section class="card">
+        <div class="card-header">
+          <h2>🤝 الجمعيات</h2>
+          <button type="button" id="add-jamiya" class="small-btn">+ جمعية</button>
+        </div>
+        <p class="hint start">أقساط الجمعية ادخار، ولا تُحسب من مصاريفك.</p>
+        <div id="jamiya-list"></div>
+      </section>
+
+      <!-- السلف -->
+      <section class="card">
+        <div class="card-header">
+          <h2>💵 السُّلَف</h2>
+          <button type="button" id="add-loan" class="small-btn">+ سلفة</button>
+        </div>
+        <div id="loan-list"></div>
+        <details id="settled-loans" class="settled" hidden>
+          <summary id="settled-title"></summary>
+          <div id="settled-list"></div>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <!-- شريط التنقل بين الصفحتين -->
+  <nav class="tab-bar">
+    <button type="button" class="tab active" data-view="view-expenses">💸 المصاريف</button>
+    <button type="button" class="tab" data-view="view-social">🤝 الجمعية والسُّلَف <span id="social-dot" class="dot" hidden></span></button>
+  </nav>
 
   <!-- نافذة إضافة/تعديل مصروف -->
   <dialog id="expense-dialog" class="sheet">
@@ -193,6 +251,97 @@
     </form>
   </dialog>
 
+  <!-- نافذة إضافة/تعديل جمعية -->
+  <dialog id="jamiya-dialog" class="sheet">
+    <form id="jamiya-form">
+      <div class="sheet-header">
+        <h2 id="jamiya-form-title">جمعية جديدة</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      </div>
+      <label>
+        اسم الجمعية
+        <input type="text" id="jamiya-name" maxlength="40" required placeholder="مثال: جمعية الشغل">
+      </label>
+      <label>
+        القسط الشهري (دينار عراقي)
+        <input type="text" id="jamiya-amount" inputmode="numeric" autocomplete="off" required placeholder="مثال: 250,000">
+      </label>
+      <label>
+        عدد المشتركين (= عدد الأشهر)
+        <input type="number" id="jamiya-members" min="2" max="60" step="1" required value="10">
+      </label>
+      <label>
+        شهر البداية
+        <input type="month" id="jamiya-start" required>
+      </label>
+      <label>
+        دوري في الاستلام (رقم الشهر)
+        <select id="jamiya-turn"></select>
+      </label>
+      <p id="jamiya-preview" class="search-summary"></p>
+      <button type="submit" class="primary-btn">حفظ</button>
+      <button type="button" id="jamiya-delete" class="danger-btn" hidden>حذف هذه الجمعية</button>
+    </form>
+  </dialog>
+
+  <!-- نافذة إضافة/تعديل سلفة -->
+  <dialog id="loan-dialog" class="sheet">
+    <form id="loan-form">
+      <div class="sheet-header">
+        <h2 id="loan-form-title">سلفة جديدة</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      </div>
+      <div class="segmented two">
+        <label><input type="radio" name="direction" value="lent" checked> 📤 أعطيت</label>
+        <label><input type="radio" name="direction" value="borrowed"> 📥 أخذت</label>
+      </div>
+      <label>
+        <span id="loan-person-label">لمن؟</span>
+        <input type="text" id="loan-person" maxlength="40" required list="people" autocomplete="off" placeholder="الاسم">
+        <datalist id="people"></datalist>
+      </label>
+      <label>
+        المبلغ (دينار عراقي)
+        <input type="text" id="loan-amount" inputmode="numeric" autocomplete="off" required placeholder="مثال: 100,000">
+      </label>
+      <label>
+        التاريخ
+        <input type="date" id="loan-date" required>
+      </label>
+      <label>
+        موعد الإرجاع (اختياري)
+        <input type="date" id="loan-due">
+      </label>
+      <label>
+        ملاحظة
+        <input type="text" id="loan-note" maxlength="200" placeholder="اختياري">
+      </label>
+      <button type="submit" class="primary-btn">حفظ</button>
+      <button type="button" id="loan-delete" class="danger-btn" hidden>حذف هذه السلفة</button>
+    </form>
+  </dialog>
+
+  <!-- نافذة تسجيل دفعة من سلفة -->
+  <dialog id="payment-dialog" class="sheet">
+    <form id="payment-form">
+      <div class="sheet-header">
+        <h2 id="payment-title">تسجيل دفعة</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      </div>
+      <p id="payment-remaining" class="search-summary"></p>
+      <label>
+        المبلغ (دينار عراقي)
+        <input type="text" id="payment-amount" inputmode="numeric" autocomplete="off" required>
+      </label>
+      <label>
+        التاريخ
+        <input type="date" id="payment-date" required>
+      </label>
+      <button type="submit" class="primary-btn">حفظ الدفعة</button>
+    </form>
+  </dialog>
+
   <script src="app.js"></script>
+  <script src="jamiya-loans.js"></script>
 </body>
 </html>

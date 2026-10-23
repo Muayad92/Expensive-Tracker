@@ -1,6 +1,8 @@
 // مفاتيح التخزين في المتصفح
 const STORAGE_KEY = "expenses";
 const CATEGORIES_KEY = "categories";
+const JAMIYAS_KEY = "jamiyas";
+const LOANS_KEY = "loans";
 
 // تصنيف "أخرى" لا يُحذف، وتنتقل إليه مصاريف أي تصنيف محذوف
 const OTHER_ID = "other";
@@ -70,13 +72,20 @@ function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+    localStorage.setItem(JAMIYAS_KEY, JSON.stringify(jamiyas));
+    localStorage.setItem(LOANS_KEY, JSON.stringify(loans));
   } catch {
     alert("تعذّر حفظ البيانات في المتصفح.");
   }
+  // تُحدَّث صفحة الجمعية والسلف عند أي تغيير في البيانات
+  document.dispatchEvent(new Event("data-changed"));
 }
 
 let expenses = load(STORAGE_KEY) || [];
 let categories = load(CATEGORIES_KEY) || DEFAULT_CATEGORIES.map((c) => ({ ...c }));
+// الجمعيات والسلف (طريقة عرضها وتعديلها في ملف jamiya-loans.js)
+let jamiyas = load(JAMIYAS_KEY) || [];
+let loans = load(LOANS_KEY) || [];
 
 function ensureOtherCategory() {
   if (!categories.some((c) => c.id === OTHER_ID)) {
@@ -841,10 +850,12 @@ async function deliverFile(content, filename, type) {
 async function exportBackup() {
   const backup = {
     app: BACKUP_APP_NAME,
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     categories,
     expenses,
+    jamiyas,
+    loans,
   };
   const saved = await deliverFile(
     JSON.stringify(backup, null, 2),
@@ -918,7 +929,17 @@ function parseBackup(text) {
     });
   }
 
-  return { categories: cats, expenses: exps, skipped, exportedAt: data.exportedAt };
+  // النسخ القديمة (قبل المرحلة 5) ليس فيها جمعيات وسلف: null تعني "اتركها كما هي"
+  const cleanList = (list, sanitize) => (Array.isArray(list) ? list.map(sanitize).filter(Boolean) : null);
+
+  return {
+    categories: cats,
+    expenses: exps,
+    jamiyas: cleanList(data.jamiyas, sanitizeJamiya),
+    loans: cleanList(data.loans, sanitizeLoan),
+    skipped,
+    exportedAt: data.exportedAt,
+  };
 }
 
 function showImportDialog(backup) {
@@ -927,6 +948,9 @@ function showImportDialog(backup) {
   const dateText = isNaN(date) ? "" : ` (محفوظة في ${date.toLocaleDateString("ar-IQ-u-nu-latn")})`;
   const total = backup.expenses.reduce((s, e) => s + e.amount, 0);
   let summary = `النسخة${dateText} فيها ${backup.expenses.length} مصروف بمجموع ${formatMoney(total)}، و${backup.categories.length} تصنيف.`;
+  if (backup.jamiyas?.length || backup.loans?.length) {
+    summary += `\nوفيها أيضاً ${backup.jamiyas.length} جمعية و${backup.loans.length} سلفة.`;
+  }
   if (backup.skipped) summary += `\nتم تجاهل ${backup.skipped} مصروف غير صالح.`;
   $("import-summary").textContent = summary;
   importDialog.showModal();
@@ -953,7 +977,27 @@ function mergeImport(backup) {
     expenses.push({ ...e, categoryId: idMap[e.categoryId] || OTHER_ID });
     added++;
   }
-  return added;
+
+  // الجمعيات والسلف: يُضاف الجديد فقط، ودفعات السلفة الموجودة تُدمج
+  let addedJamiyas = 0;
+  let addedLoans = 0;
+  for (const j of backup.jamiyas || []) {
+    if (jamiyas.some((x) => x.id === j.id)) continue;
+    jamiyas.push(j);
+    addedJamiyas++;
+  }
+  for (const loan of backup.loans || []) {
+    const existing = loans.find((x) => x.id === loan.id);
+    if (!existing) {
+      loans.push(loan);
+      addedLoans++;
+      continue;
+    }
+    for (const payment of loan.payments) {
+      if (!existing.payments.some((x) => x.id === payment.id)) existing.payments.push(payment);
+    }
+  }
+  return { expenses: added, jamiyas: addedJamiyas, loans: addedLoans };
 }
 
 function replaceWithImport(backup) {
@@ -961,6 +1005,8 @@ function replaceWithImport(backup) {
   ensureOtherCategory();
   const ids = new Set(categories.map((c) => c.id));
   expenses = backup.expenses.map((e) => ({ ...e, categoryId: ids.has(e.categoryId) ? e.categoryId : OTHER_ID }));
+  if (backup.jamiyas) jamiyas = backup.jamiyas;
+  if (backup.loans) loans = backup.loans;
 }
 
 $("export-backup").addEventListener("click", exportBackup);
@@ -984,7 +1030,11 @@ $("import-merge").addEventListener("click", () => {
   save();
   render();
   importDialog.close();
-  alert(added ? `تمت إضافة ${added} مصروف.` : "كل مصاريف النسخة موجودة لديك مسبقاً.");
+  const parts = [];
+  if (added.expenses) parts.push(`${added.expenses} مصروف`);
+  if (added.jamiyas) parts.push(`${added.jamiyas} جمعية`);
+  if (added.loans) parts.push(`${added.loans} سلفة`);
+  alert(parts.length ? `تمت إضافة ${parts.join(" و")}.` : "كل ما في النسخة موجود لديك مسبقاً.");
 });
 
 $("import-replace").addEventListener("click", () => {
@@ -993,7 +1043,7 @@ $("import-replace").addEventListener("click", () => {
   save();
   render();
   importDialog.close();
-  alert(`تم الاسترجاع: ${expenses.length} مصروف.`);
+  alert(`تم الاسترجاع: ${expenses.length} مصروف و${jamiyas.length} جمعية و${loans.length} سلفة.`);
 });
 
 importDialog.addEventListener("close", () => {
@@ -1002,7 +1052,7 @@ importDialog.addEventListener("close", () => {
 
 // ===== إغلاق النوافذ =====
 
-for (const dialog of [expenseDialog, categoriesDialog, importDialog, workDialog]) {
+function setupDialog(dialog) {
   dialog.querySelector(".close-btn").addEventListener("click", () => dialog.close());
   // إغلاق النافذة عند الضغط خارجها (على الخلفية المعتمة فقط)
   dialog.addEventListener("click", (event) => {
@@ -1014,6 +1064,8 @@ for (const dialog of [expenseDialog, categoriesDialog, importDialog, workDialog]
     if (!inside) dialog.close();
   });
 }
+
+[expenseDialog, categoriesDialog, importDialog, workDialog].forEach(setupDialog);
 
 render();
 
