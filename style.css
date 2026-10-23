@@ -1737,6 +1737,15 @@ select:focus {
   flex: 1;
 }
 
+/* الرسالة لا تمنع الضغط على ما تحتها، إلا زر "تراجع" */
+.toast {
+  pointer-events: none;
+}
+
+.toast-undo {
+  pointer-events: auto;
+}
+
 .toast-undo {
   border: none;
   background: none;
@@ -1981,4 +1990,189 @@ select:focus {
   padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
   background: var(--surface);
   border-top: 1px solid var(--surface-2);
+}
+
+/* ===== الرئيسية: إخفاء المبالغ و"تقدر تصرف اليوم" ===== */
+
+.brand-row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.brand-row .brand {
+  margin: 0;
+}
+
+.privacy-btn {
+  position: absolute;
+  left: 0;
+}
+
+.privacy-btn.on {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border-color: transparent;
+}
+
+.safe-card {
+  text-align: center;
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: transparent;
+}
+
+.safe-label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.safe-value {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.safe-value .money-unit {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.safe-value.bad {
+  color: #ffd2cc;
+}
+
+.safe-note {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+.safe-note.bad {
+  color: #ffd2cc;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.safe-card.setup {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px dashed var(--primary);
+  padding: 4px;
+}
+
+.safe-setup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: none;
+  color: var(--primary-strong);
+  font-weight: 600;
+  text-align: right;
+}
+
+.safe-setup span {
+  flex: 1;
+}
+
+/* ===== المصاريف: التصفية والأيام والسحب للحذف ===== */
+
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 10px -16px 0;
+  padding: 0 16px 2px;
+  scrollbar-width: none;
+}
+
+.filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.filter-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+}
+
+.day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 6px 6px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.day-head b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.expense-day {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.expense-item {
+  position: relative;
+  display: block;
+  padding: 0;
+  border-bottom: 1px solid var(--surface-2);
+  /* التمرير العمودي للمتصفح، والسحب الأفقي لنا */
+  touch-action: pan-y;
+  cursor: default;
+}
+
+.expense-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: transform 0.18s ease-out;
+  outline-offset: -2px;
+}
+
+.expense-item.swiping .expense-row {
+  transition: none;
+}
+
+.swipe-back {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 22px;
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.expense-item.armed .swipe-back {
+  background: var(--bad);
+  color: #fff;
 }

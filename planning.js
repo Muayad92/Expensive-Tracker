@@ -61,27 +61,60 @@ function renderBudgetSummary(monthExpenses) {
     box.appendChild(head);
 
     const line = el("p", "budget-line");
-    line.append(el("b", "", spent.toLocaleString("en-US")), ` من ${formatMoney(budgets.total)}`);
+    line.append(el("b", "", fmtNum(spent)), ` من ${formatMoney(budgets.total)}`);
     box.appendChild(line);
     box.appendChild(meter(percent, level));
 
-    let detail;
-    if (level === "over") {
-      detail = `تجاوزت الميزانية بـ ${formatMoney(spent - budgets.total)}`;
-    } else {
-      detail = `بقي ${formatMoney(budgets.total - spent)}`;
-      // في الشهر الحالي: كم يمكنك أن تصرف يومياً حتى نهاية الشهر
-      if (viewMonth === todayString().slice(0, 7)) {
-        const today = parseDate(todayString());
-        const daysLeft = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() - today.getDate() + 1;
-        const perDay = Math.floor((budgets.total - spent) / daysLeft / 250) * 250;
-        detail += ` · حوالي ${formatMoney(perDay)} يومياً لـ ${countWord(daysLeft, "يوم", "يومين", "أيام")}`;
-      }
-    }
+    const detail = level === "over"
+      ? `تجاوزت الميزانية بـ ${formatMoney(spent - budgets.total)}`
+      : `بقي ${formatMoney(budgets.total - spent)}`;
     box.appendChild(el("p", "budget-detail", detail));
   }
 
+  renderSafeToSpend(monthExpenses);
   renderBudgetAlerts(monthExpenses);
+}
+
+// "تقدر تصرف اليوم": ما بقي من الميزانية (قبل اليوم) مقسوماً على الأيام الباقية، ناقص ما صرفته اليوم
+function renderSafeToSpend(monthExpenses) {
+  const box = $("safe-spend");
+  box.innerHTML = "";
+  const today = todayString();
+  box.hidden = viewMonth !== today.slice(0, 7);
+  if (box.hidden) return;
+
+  if (!budgets.total) {
+    // بدون ميزانية لا يمكن الحساب: ندعو المستخدم لوضعها
+    const btn = el("button", "safe-setup");
+    btn.type = "button";
+    btn.append(icon("target"), el("span", "", "حدّد ميزانيتك الشهرية لتعرف كم تقدر تصرف كل يوم"), icon("chevron-left", "sm"));
+    btn.addEventListener("click", () => $("open-budget").click());
+    box.appendChild(btn);
+    box.classList.add("setup");
+    return;
+  }
+  box.classList.remove("setup");
+
+  const now = parseDate(today);
+  const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
+  const spentToday = monthExpenses.filter((e) => e.date === today).reduce((s, e) => s + e.amount, 0);
+  const spentBefore = monthExpenses.reduce((s, e) => s + e.amount, 0) - spentToday;
+  const leftForMonth = budgets.total - spentBefore;
+  // حصة اليوم مقرّبة لأقل 250 دينار
+  const allowance = Math.max(0, Math.floor(leftForMonth / daysLeft / 250) * 250);
+  const left = allowance - spentToday;
+
+  box.appendChild(el("p", "safe-label", "تقدر تصرف اليوم"));
+  const value = el("p", left > 0 ? "safe-value" : "safe-value bad");
+  setMoney(value, Math.max(0, left));
+  box.appendChild(value);
+
+  let note;
+  if (leftForMonth <= 0) note = "انتهت ميزانية هذا الشهر";
+  else if (left < 0) note = `تجاوزت حصة اليوم بـ ${formatMoney(-left)}`;
+  else if (spentToday > 0) note = `حصة اليوم ${formatMoney(allowance)} · صرفت منها ${formatMoney(spentToday)}`;
+  else note = `حصتك اليومية حتى نهاية الشهر (${countWord(daysLeft, "يوم", "يومين", "أيام")})`;
+  box.appendChild(el("p", left < 0 || leftForMonth <= 0 ? "safe-note bad" : "safe-note", note));
 }
 
 // تنبيه بالتصنيفات القريبة من ميزانيتها أو المتجاوزة لها (للشهر الحالي فقط)
@@ -329,7 +362,7 @@ function renderQuickAdd() {
     const btn = el("button", "quick-btn");
     btn.type = "button";
     const text = el("span", "quick-text");
-    text.append(el("span", "", s.note || cat.name), el("strong", "money", s.amount.toLocaleString("en-US")));
+    text.append(el("span", "", s.note || cat.name), el("strong", "money", fmtNum(s.amount)));
     btn.append(catBadge(cat, "sm"), text);
     btn.addEventListener("click", () => quickAdd(s));
     box.appendChild(btn);

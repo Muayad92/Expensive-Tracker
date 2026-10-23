@@ -23,7 +23,10 @@
   <!-- ===== الرئيسية: نظرة سريعة على الشهر ===== -->
   <div id="view-home" class="view">
     <header class="page-top">
-      <p class="brand">مصاريفي</p>
+      <div class="brand-row">
+        <p class="brand">مصاريفي</p>
+        <button type="button" id="privacy-toggle" class="round-btn privacy-btn" aria-label="إخفاء المبالغ" aria-pressed="false"><svg class="ic"><use href="icons/sprite.svg#i-eye"/></svg></button>
+      </div>
       <div class="month-nav">
         <button type="button" id="prev-month" class="round-btn" aria-label="الشهر السابق"><svg class="ic"><use href="icons/sprite.svg#i-chevron-right"/></svg></button>
         <span id="month-name" class="month-name"></span>
@@ -39,6 +42,9 @@
     </header>
 
     <main class="container">
+      <!-- تقدر تصرف اليوم: من الميزانية وما بقي من الشهر -->
+      <section id="safe-spend" class="card safe-card" hidden></section>
+
       <!-- الميزانية -->
       <section id="budget-summary" class="card budget-card" hidden></section>
 
@@ -111,13 +117,16 @@
         <svg class="ic"><use href="icons/sprite.svg#i-search"/></svg>
         <input type="search" id="search" placeholder="بحث في كل المصاريف" aria-label="بحث">
       </label>
+      <!-- تصفية حسب المجموعة -->
+      <div id="group-filter" class="filter-chips"></div>
       <div class="list-head">
         <h2 id="list-title" class="section-label">المصاريف</h2>
         <p id="search-summary" class="search-summary" hidden></p>
       </div>
       <p id="empty-message" class="empty"></p>
-      <ul id="expense-list" class="card expense-list"></ul>
-      <p class="hint" id="edit-hint" hidden>اضغط على أي مصروف لتعديله.</p>
+      <!-- المصاريف مجمّعة حسب الأيام -->
+      <div id="expense-list"></div>
+      <p class="hint" id="edit-hint" hidden>اضغط على المصروف لتعديله · اسحبه يميناً أو يساراً لحذفه</p>
     </main>
   </div>
 

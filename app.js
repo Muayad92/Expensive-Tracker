@@ -215,15 +215,29 @@ function monthLabel(month) {
   return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
+// إخفاء المبالغ (زر 👁): الأرقام تظهر •••• عند فتح التطبيق أمام الناس. إعداد خاص بهذا الجوال
+const PRIVACY_KEY = "privacy";
+let privacy = false;
+try {
+  privacy = localStorage.getItem(PRIVACY_KEY) === "1";
+} catch {
+  // يبقى الإخفاء متوقفاً
+}
+
+// رقم بفواصل الآلاف: 25,000 (أو •••• عند إخفاء المبالغ)
+function fmtNum(value) {
+  return privacy ? "••••" : Math.round(value).toLocaleString("en-US");
+}
+
 // الدينار العراقي بدون كسور وبفواصل الآلاف: 25,000 د.ع
 function formatMoney(value) {
-  return `${Math.round(value).toLocaleString("en-US")} د.ع`;
+  return `${fmtNum(value)} د.ع`;
 }
 
 // المبلغ كبيراً و"د.ع" بعده بخط أصغر
 function setMoney(element, value) {
   element.replaceChildren(
-    document.createTextNode(Math.round(value).toLocaleString("en-US")),
+    document.createTextNode(fmtNum(value)),
     el("small", "money-unit", "د.ع")
   );
 }
@@ -309,46 +323,160 @@ function render() {
       : "لا توجد مصاريف بعد.<br>اضغط زر <strong>+</strong> لإضافة أول مصروف.";
   }
 
+  // أزرار التصفية: "الكل" والمجموعات الموجودة في القائمة
+  const presentGroups = new Set(shown.map((e) => getCategory(e.categoryId).group));
+  if (listGroup && !presentGroups.has(listGroup)) listGroup = null;
+  renderGroupFilter(presentGroups);
+  if (listGroup) shown = shown.filter((e) => getCategory(e.categoryId).group === listGroup);
+
   shown.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
   listEl.innerHTML = "";
-  for (const exp of shown) listEl.appendChild(renderExpense(exp));
+  // مجمّعة حسب الأيام، ولكل يوم مجموعه
+  let dayList = null;
+  let lastDate = null;
+  for (const exp of shown) {
+    if (exp.date !== lastDate) {
+      lastDate = exp.date;
+      const dayTotal = shown.filter((e) => e.date === exp.date).reduce((s, e) => s + e.amount, 0);
+      const head = el("div", "day-head");
+      head.append(el("span", "", dayLabel(exp.date, Boolean(query))), el("b", "money", fmtNum(dayTotal)));
+      dayList = el("ul", "card expense-day");
+      listEl.append(head, dayList);
+    }
+    dayList.appendChild(renderExpense(exp));
+  }
 
   emptyEl.hidden = shown.length > 0;
   editHintEl.hidden = shown.length === 0;
 }
 
+let listGroup = null;
+
+function renderGroupFilter(presentGroups) {
+  const box = $("group-filter");
+  box.innerHTML = "";
+  // لا داعي للتصفية إذا كانت المصاريف كلها من مجموعة واحدة
+  box.hidden = presentGroups.size < 2;
+  const chip = (id, name) => {
+    const btn = el("button", (listGroup || null) === id ? "filter-chip active" : "filter-chip", name);
+    btn.type = "button";
+    btn.addEventListener("click", () => {
+      listGroup = id;
+      render();
+    });
+    return btn;
+  };
+  box.appendChild(chip(null, "الكل"));
+  for (const group of GROUPS) {
+    if (presentGroups.has(group.id)) box.appendChild(chip(group.id, group.name));
+  }
+}
+
+// "اليوم"، "أمس · الخميس 22"، "الأربعاء 21" (مع الشهر في نتائج البحث)
+function dayLabel(date, withMonth) {
+  const [y, m, d] = date.split("-").map(Number);
+  const day = new Date(y, m - 1, d);
+  const weekday = day.toLocaleDateString("ar", { weekday: "long" });
+  const month = withMonth ? ` ${day.toLocaleDateString("en-US", { month: "long", year: "numeric" })}` : "";
+  const ago = daysAgo(date);
+  if (ago === 0) return "اليوم";
+  if (ago === 1) return `أمس · ${weekday} ${d}${month}`;
+  return `${weekday} ${d}${month}`;
+}
+
 function renderExpense(exp) {
   const cat = getCategory(exp.categoryId);
   const item = el("li", "expense-item");
-  item.tabIndex = 0;
-  item.addEventListener("click", () => openForm(exp));
-  item.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") openForm(exp);
-  });
 
-  const badge = catBadge(cat);
+  // خلفية حمراء تظهر عند السحب
+  const back = el("div", "swipe-back");
+  back.append(icon("trash-2"), icon("trash-2"));
+
+  const row = el("div", "expense-row");
+  row.tabIndex = 0;
+  row.setAttribute("role", "button");
+  row.addEventListener("click", () => {
+    if (!item.dataset.swiped) openForm(exp);
+  });
+  row.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") openForm(exp);
+    if (event.key === "Delete") deleteExpense(exp.id);
+  });
 
   const info = el("div", "expense-info");
   const title = el("div", "expense-category", cat.name);
   if (exp.worth === "no") title.appendChild(el("span", "tag bad", "ندمت"));
   if (exp.worth === "yes") title.appendChild(el("span", "tag good", "يستحق"));
   if (exp.recurringId) title.appendChild(el("span", "tag", "ثابت"));
-  info.append(title, el("div", "expense-meta", exp.note ? `${exp.date} · ${exp.note}` : exp.date));
+  info.appendChild(title);
+  if (exp.note) info.appendChild(el("div", "expense-meta", exp.note));
 
-  const amount = el("div", "expense-amount", Math.round(exp.amount).toLocaleString("en-US"));
+  const amount = el("div", "expense-amount", fmtNum(exp.amount));
   if (work) amount.appendChild(el("div", "expense-hours", workTime(exp.amount)));
 
-  const btn = el("button", "delete-btn");
-  btn.type = "button";
-  btn.setAttribute("aria-label", "حذف");
-  btn.appendChild(icon("trash-2"));
-  btn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    deleteExpense(exp.id);
+  row.append(catBadge(cat), info, amount);
+  item.append(back, row);
+  enableSwipe(item, row, () => deleteExpense(exp.id));
+  return item;
+}
+
+// السحب أفقياً لأكثر من ثلث العرض يحذف المصروف (والحذف فيه "تراجع")
+const SWIPE_DELETE_RATIO = 0.35;
+
+function enableSwipe(item, row, onDelete) {
+  let startX = 0;
+  let startY = 0;
+  let dx = 0;
+  let tracking = false;
+  let swiping = false;
+
+  item.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    tracking = true;
+    swiping = false;
+    dx = 0;
+    startX = event.clientX;
+    startY = event.clientY;
   });
 
-  item.append(badge, info, amount, btn);
-  return item;
+  item.addEventListener("pointermove", (event) => {
+    if (!tracking) return;
+    const mx = event.clientX - startX;
+    const my = event.clientY - startY;
+    if (!swiping) {
+      // نبدأ السحب فقط إذا كانت الحركة أفقية بوضوح، حتى لا نعطّل تمرير الصفحة
+      if (Math.abs(mx) > 12 && Math.abs(mx) > Math.abs(my) * 1.5) {
+        swiping = true;
+        item.classList.add("swiping");
+        item.setPointerCapture(event.pointerId);
+      } else if (Math.abs(my) > 12) {
+        tracking = false;
+      }
+      return;
+    }
+    dx = mx;
+    row.style.transform = `translateX(${dx}px)`;
+    item.classList.toggle("armed", Math.abs(dx) > item.offsetWidth * SWIPE_DELETE_RATIO);
+  });
+
+  const end = () => {
+    if (!tracking) return;
+    tracking = false;
+    if (!swiping) return;
+    item.classList.remove("swiping");
+    // نمنع فتح نافذة التعديل بالضغطة التي تأتي بعد السحب
+    item.dataset.swiped = "1";
+    setTimeout(() => delete item.dataset.swiped, 300);
+    if (Math.abs(dx) > item.offsetWidth * SWIPE_DELETE_RATIO) {
+      row.style.transform = `translateX(${Math.sign(dx) * item.offsetWidth}px)`;
+      setTimeout(onDelete, 180);
+    } else {
+      row.style.transform = "";
+      item.classList.remove("armed");
+    }
+  };
+  item.addEventListener("pointerup", end);
+  item.addEventListener("pointercancel", end);
 }
 
 function renderCategoryTotals(monthExpenses) {
@@ -466,7 +594,7 @@ function renderPie(slices, total) {
   // في الوسط: مجموع الشهر، أو المجموعة المختارة
   const active = slices.find((s) => s.id === activeGroup);
   svg.appendChild(svgEl("text", { y: -14, class: "pie-center-label" }, active ? active.name : "مصاريف الشهر"));
-  svg.appendChild(svgEl("text", { y: 10, class: "pie-center-value money" }, (active ? active.sum : total).toLocaleString("en-US")));
+  svg.appendChild(svgEl("text", { y: 10, class: "pie-center-value money" }, fmtNum(active ? active.sum : total)));
   svg.appendChild(svgEl("text", { y: 30, class: "pie-center-label" }, active ? `${active.percent}% · د.ع` : "د.ع"));
 
   svg.setAttribute("aria-label", slices.map((s) => `${s.name} ${s.percent}%`).join("، "));
@@ -489,7 +617,7 @@ function renderGroupLegend(slices) {
     if (activeGroup && activeGroup !== slice.id) item.classList.add("dimmed");
     const dot = el("span", "swatch");
     dot.style.background = slice.color;
-    item.append(dot, el("span", "legend-name", slice.name), el("b", "money", slice.sum.toLocaleString("en-US")));
+    item.append(dot, el("span", "legend-name", slice.name), el("b", "money", fmtNum(slice.sum)));
     item.addEventListener("click", () => setActiveGroup(slice.id));
     legend.appendChild(item);
   }
@@ -1512,6 +1640,31 @@ function setupDialog(dialog) {
 }
 
 [expenseDialog, categoriesDialog, importDialog, workDialog].forEach(setupDialog);
+
+// ===== إخفاء المبالغ =====
+
+function applyPrivacy() {
+  const btn = $("privacy-toggle");
+  btn.setAttribute("aria-pressed", String(privacy));
+  btn.setAttribute("aria-label", privacy ? "إظهار المبالغ" : "إخفاء المبالغ");
+  btn.replaceChildren(icon(privacy ? "eye-off" : "eye"));
+  btn.classList.toggle("on", privacy);
+}
+
+$("privacy-toggle").addEventListener("click", () => {
+  privacy = !privacy;
+  try {
+    localStorage.setItem(PRIVACY_KEY, privacy ? "1" : "0");
+  } catch {
+    // يبقى الإعداد لهذه الجلسة فقط
+  }
+  applyPrivacy();
+  render();
+  // تحديث صفحة السلفة والديون والمواسم أيضاً
+  document.dispatchEvent(new Event("data-changed"));
+  showToast(privacy ? "المبالغ مخفية" : "المبالغ ظاهرة");
+});
+applyPrivacy();
 
 // أول عرض بعد تحميل كل الملفات، لأن العرض يستخدم دوال من planning.js
 document.addEventListener("DOMContentLoaded", render);
