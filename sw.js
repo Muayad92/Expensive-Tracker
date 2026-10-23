@@ -1,5 +1,5 @@
 // يحفظ ملفات التطبيق في الجوال حتى يعمل بدون إنترنت
-const CACHE = "masarifi-v8";
+const CACHE = "masarifi-v9";
 const FILES = [
   "./",
   "index.html",
@@ -10,6 +10,7 @@ const FILES = [
   "planning.js",
   "manifest.webmanifest",
   "icons/icon.svg",
+  "icons/sprite.svg",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/apple-touch-icon.png",

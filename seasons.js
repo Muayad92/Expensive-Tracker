@@ -21,8 +21,9 @@ const HIJRI_MONTHS = [
   "محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة",
   "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة",
 ];
+// أسماء الأشهر الميلادية بالإنجليزية: January ... December
 const GREGORIAN_MONTHS = Array.from({ length: 12 }, (_, i) =>
-  new Date(2026, i, 1).toLocaleDateString("ar-IQ-u-nu-latn", { month: "long" })
+  new Date(2026, i, 1).toLocaleDateString("en-US", { month: "long" })
 );
 
 if (!seasons) seasons = DEFAULT_SEASONS.map((s) => ({ ...s }));
@@ -82,7 +83,7 @@ function dayDiff(from, to) {
 }
 
 function longDate(date) {
-  return date.toLocaleDateString("ar-IQ-u-nu-latn", { day: "numeric", month: "long", year: "numeric" });
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }); // 8 February 2027
 }
 
 // جدول التاريخ الهجري لكل يوم في نطاق البحث، يُحسب مرة واحدة في اليوم
@@ -309,7 +310,8 @@ function renderSeasonManageList() {
     const info = el("div", "season-info");
     info.append(el("strong", "", `${season.icon} ${season.name}`), el("span", "muted", describeSeason(season)));
 
-    const del = el("button", "delete-btn", "🗑");
+    const del = el("button", "delete-btn");
+    del.appendChild(icon("trash-2"));
     del.type = "button";
     del.setAttribute("aria-label", `حذف ${season.name}`);
     del.addEventListener("click", () => {

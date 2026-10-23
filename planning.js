@@ -48,8 +48,21 @@ function renderBudgetSummary(monthExpenses) {
 
   if (budgets.total) {
     const spent = monthExpenses.reduce((s, e) => s + e.amount, 0);
-    const { percent, level, icon } = budgetLevel(spent, budgets.total);
-    box.appendChild(el("p", "budget-line", `${icon || "🎯"} الميزانية: ${formatMoney(spent)} من ${formatMoney(budgets.total)}`));
+    const { percent, level } = budgetLevel(spent, budgets.total);
+
+    const head = el("div", "card-head");
+    const title = el("h2", "card-title");
+    title.append(icon("target"), "الميزانية");
+    // النسبة مع أيقونة وكلمة، حتى لا يعتمد المعنى على اللون وحده
+    const chip = el("span", `level-chip ${level}`);
+    if (level !== "ok") chip.appendChild(icon(level === "over" ? "octagon-alert" : "triangle-alert", "sm"));
+    chip.append(level === "over" ? `تجاوزت · ${percent}%` : `${percent}%`);
+    head.append(title, chip);
+    box.appendChild(head);
+
+    const line = el("p", "budget-line");
+    line.append(el("b", "", spent.toLocaleString("en-US")), ` من ${formatMoney(budgets.total)}`);
+    box.appendChild(line);
     box.appendChild(meter(percent, level));
 
     let detail;

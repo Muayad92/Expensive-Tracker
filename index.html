@@ -4,150 +4,137 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>مصاريفي</title>
-  <meta name="theme-color" content="#2b4c7e">
+  <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1211" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="مصاريفي">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- ===== صفحة المصاريف ===== -->
-  <div id="view-expenses">
-  <header class="app-header">
-    <h1>مصاريفي</h1>
-
-    <!-- التنقل بين الأشهر -->
-    <div class="month-nav">
-      <button type="button" id="prev-month" class="nav-btn" aria-label="الشهر السابق">›</button>
-      <p class="month-label">مجموع <span id="month-name"></span></p>
-      <button type="button" id="next-month" class="nav-btn" aria-label="الشهر التالي">‹</button>
-    </div>
-    <p class="month-total" id="month-total">0 د.ع</p>
-    <p class="work-summary" id="work-summary" hidden></p>
-    <div id="budget-summary" class="budget-summary" hidden></div>
-    <button type="button" id="setup-work" class="link-btn" hidden>⏱ اعرف كم ساعة عمل تكلّفك مصاريفك</button>
-    <button type="button" id="this-month" class="link-btn" hidden>العودة إلى الشهر الحالي</button>
-  </header>
-
-  <main class="container">
-    <!-- تذكير بالنسخ الاحتياطي -->
-    <div id="backup-reminder" class="reminder" hidden>
-      <span id="backup-reminder-text"></span>
-      <button type="button" id="backup-now" class="small-btn">احفظ الآن</button>
-    </div>
-
-    <!-- تذكير بأقساط السلفة والديون المتأخرة -->
-    <button type="button" id="social-reminder" class="reminder reminder-link" hidden></button>
-
-    <!-- تنبيهات المواسم القادمة أو الحالية -->
-    <div id="season-alerts"></div>
-
-    <!-- تنبيه التصنيفات التي اقتربت من ميزانيتها أو تجاوزتها -->
-    <div id="budget-alerts" class="reminder budget-alerts" hidden></div>
-
-    <!-- أزرار الإضافة السريعة لأكثر المصاريف تكراراً -->
-    <section id="quick-add" class="card" hidden>
-      <h2>⚡ إضافة سريعة</h2>
-      <div id="quick-buttons" class="quick-buttons"></div>
-      <p class="hint start">ضغطة واحدة تضيف المصروف بتاريخ اليوم.</p>
-    </section>
-
-    <!-- سؤال ميزان الندم: يظهر بعد يومين من المصروف -->
-    <section id="regret-ask" class="card regret-ask" hidden>
-      <div class="card-header">
-        <h2>هل كان يستحق؟</h2>
-        <span id="regret-queue" class="badge"></span>
+  <!-- ===== الرئيسية: نظرة سريعة على الشهر ===== -->
+  <div id="view-home" class="view">
+    <header class="page-top">
+      <p class="brand">مصاريفي</p>
+      <div class="month-nav">
+        <button type="button" id="prev-month" class="round-btn" aria-label="الشهر السابق"><svg class="ic"><use href="icons/sprite.svg#i-chevron-right"/></svg></button>
+        <span id="month-name" class="month-name"></span>
+        <button type="button" id="next-month" class="round-btn" aria-label="الشهر التالي"><svg class="ic"><use href="icons/sprite.svg#i-chevron-left"/></svg></button>
       </div>
-      <p id="regret-expense" class="regret-expense"></p>
-      <div class="regret-buttons">
-        <button type="button" class="worth-btn yes" data-worth="yes">👍 يستحق</button>
-        <button type="button" class="worth-btn no" data-worth="no">👎 ندمت</button>
+      <p class="hero-label">صرفت هذا الشهر</p>
+      <p class="hero money" id="month-total">0</p>
+      <p class="pill-soft" id="work-summary" hidden></p>
+      <div class="top-links">
+        <button type="button" id="setup-work" class="link-btn" hidden><svg class="ic sm"><use href="icons/sprite.svg#i-clock"/></svg> اعرف كم ساعة عمل تكلّفك مصاريفك</button>
+        <button type="button" id="this-month" class="link-btn" hidden>العودة إلى الشهر الحالي</button>
       </div>
-      <button type="button" id="regret-skip" class="link-btn dark">لا أتذكر · تخطَّ</button>
-    </section>
+    </header>
 
-    <!-- مجموع كل تصنيف -->
-    <section class="card">
-      <div class="card-header">
-        <h2>حسب التصنيف</h2>
-        <div class="header-buttons">
-          <button type="button" id="open-budget" class="small-btn">🎯 الميزانية</button>
-          <button type="button" id="manage-categories" class="small-btn">⚙️ التصنيفات</button>
+    <main class="container">
+      <!-- الميزانية -->
+      <section id="budget-summary" class="card budget-card" hidden></section>
+
+      <!-- التنبيهات -->
+      <div id="backup-reminder" class="notice warn" hidden>
+        <svg class="ic"><use href="icons/sprite.svg#i-triangle-alert"/></svg>
+        <span id="backup-reminder-text" class="notice-text"></span>
+        <button type="button" id="backup-now" class="chip-btn">احفظ الآن</button>
+      </div>
+      <button type="button" id="social-reminder" class="notice bad notice-link" hidden></button>
+      <div id="season-alerts"></div>
+      <div id="budget-alerts" class="notice warn budget-alerts" hidden></div>
+
+      <!-- أزرار الإضافة السريعة لأكثر المصاريف تكراراً -->
+      <section id="quick-add" class="card" hidden>
+        <h2 class="card-title">إضافة سريعة</h2>
+        <div id="quick-buttons" class="quick-buttons"></div>
+      </section>
+
+      <!-- سؤال ميزان الندم: يظهر بعد يومين من المصروف -->
+      <section id="regret-ask" class="card regret-ask" hidden>
+        <div class="card-head">
+          <h2 class="card-title">هل كان يستحق؟</h2>
+          <span id="regret-queue" class="badge"></span>
         </div>
-      </div>
-      <!-- القرص الدائري: نسبة كل تصنيف من مصاريف الشهر -->
-      <div id="pie-wrap" class="pie-wrap" hidden>
-        <svg id="pie" class="pie" viewBox="-100 -100 200 200" role="img"></svg>
-        <p id="pie-caption" class="pie-caption"></p>
-      </div>
-      <ul id="category-totals" class="totals"></ul>
-    </section>
+        <p id="regret-expense" class="regret-expense"></p>
+        <div class="regret-buttons">
+          <button type="button" class="worth-btn yes" data-worth="yes"><svg class="ic"><use href="icons/sprite.svg#i-thumbs-up"/></svg> يستحق</button>
+          <button type="button" class="worth-btn no" data-worth="no"><svg class="ic"><use href="icons/sprite.svg#i-thumbs-down"/></svg> ندمت</button>
+        </div>
+        <button type="button" id="regret-skip" class="link-btn">لا أتذكر · تخطَّ</button>
+      </section>
 
-    <!-- نتيجة ميزان الندم للشهر المختار -->
-    <section id="regret-stats" class="card" hidden>
-      <h2>⚖️ ميزان الندم</h2>
-      <div id="regret-content"></div>
-    </section>
+      <!-- توزيع المصاريف -->
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title">توزيع المصاريف</h2>
+        </div>
+        <!-- القرص الدائري: نسبة كل تصنيف من مصاريف الشهر -->
+        <div id="pie-wrap" class="pie-wrap" hidden>
+          <svg id="pie" class="pie" viewBox="-100 -100 200 200" role="img"></svg>
+          <p id="pie-caption" class="pie-caption"></p>
+        </div>
+        <ul id="category-totals" class="totals"></ul>
+      </section>
 
-    <!-- قائمة المصاريف -->
-    <section class="card">
-      <h2 id="list-title">المصاريف</h2>
-      <input type="search" id="search" class="search" placeholder="🔍 بحث في كل المصاريف">
-      <p id="search-summary" class="search-summary" hidden></p>
-      <p id="empty-message" class="empty"></p>
-      <ul id="expense-list" class="expense-list"></ul>
-      <p class="hint" id="edit-hint" hidden>اضغط على أي مصروف لتعديله.</p>
-    </section>
-
-    <!-- المواسم -->
-    <section class="card">
-      <div class="card-header">
-        <h2>📅 المواسم</h2>
-        <button type="button" id="manage-seasons" class="small-btn">⚙️ تعديل</button>
-      </div>
-      <ul id="season-list" class="season-list"></ul>
-      <p class="hint start">مواعيد المواسم الهجرية تقريبية، وقد تختلف بيوم حسب رؤية الهلال.</p>
-    </section>
-
-    <!-- النسخ الاحتياطي والتصدير -->
-    <section class="card">
-      <h2>بياناتي</h2>
-      <p class="backup-status" id="backup-status"></p>
-      <div class="data-actions">
-        <button type="button" id="export-backup" class="action-btn">💾 حفظ نسخة احتياطية</button>
-        <button type="button" id="import-backup" class="action-btn">📂 استرجاع من نسخة احتياطية</button>
-        <button type="button" id="export-csv" class="action-btn">📊 تصدير إلى Excel</button>
-        <button type="button" id="open-work" class="action-btn">💼 راتبي وساعات عملي</button>
-        <button type="button" id="open-recurring" class="action-btn">🔁 المصاريف الثابتة</button>
-      </div>
-      <input type="file" id="import-file" accept=".json,application/json" hidden>
-    </section>
-  </main>
-
-  <!-- زر الإضافة العائم -->
-  <button type="button" id="add-btn" class="fab" aria-label="إضافة مصروف">+</button>
+      <!-- نتيجة ميزان الندم للشهر المختار -->
+      <section id="regret-stats" class="card" hidden>
+        <h2 class="card-title">ميزان الندم</h2>
+        <div id="regret-content"></div>
+      </section>
+    </main>
   </div>
 
-  <!-- ===== صفحة السلفة والديون ===== -->
-  <div id="view-social" hidden>
-    <header class="app-header">
-      <h1>السلفة والديون</h1>
+  <!-- ===== المصاريف: القائمة والبحث ===== -->
+  <div id="view-expenses" class="view" hidden>
+    <header class="page-top compact">
+      <h1 class="page-title">المصاريف</h1>
+      <div class="month-nav">
+        <button type="button" id="list-prev-month" class="round-btn" aria-label="الشهر السابق"><svg class="ic"><use href="icons/sprite.svg#i-chevron-right"/></svg></button>
+        <span id="list-month-name" class="month-name"></span>
+        <button type="button" id="list-next-month" class="round-btn" aria-label="الشهر التالي"><svg class="ic"><use href="icons/sprite.svg#i-chevron-left"/></svg></button>
+      </div>
+    </header>
+
+    <main class="container">
+      <label class="search">
+        <svg class="ic"><use href="icons/sprite.svg#i-search"/></svg>
+        <input type="search" id="search" placeholder="بحث في كل المصاريف" aria-label="بحث">
+      </label>
+      <div class="list-head">
+        <h2 id="list-title" class="section-label">المصاريف</h2>
+        <p id="search-summary" class="search-summary" hidden></p>
+      </div>
+      <p id="empty-message" class="empty"></p>
+      <ul id="expense-list" class="card expense-list"></ul>
+      <p class="hint" id="edit-hint" hidden>اضغط على أي مصروف لتعديله.</p>
+    </main>
+  </div>
+
+  <!-- ===== السلفة والديون ===== -->
+  <div id="view-social" class="view" hidden>
+    <header class="page-top compact">
+      <h1 class="page-title">السلفة والديون</h1>
       <div class="social-summary">
-        <div>
-          <span class="summary-label">لك عند الناس</span>
-          <strong id="sum-lent">0 د.ع</strong>
+        <div class="stat">
+          <span class="stat-label">لك عند الناس</span>
+          <strong id="sum-lent" class="money good">0</strong>
         </div>
-        <div>
-          <span class="summary-label">عليك للناس</span>
-          <strong id="sum-borrowed">0 د.ع</strong>
+        <div class="stat">
+          <span class="stat-label">عليك للناس</span>
+          <strong id="sum-borrowed" class="money bad">0</strong>
         </div>
-        <div>
-          <span class="summary-label">مدّخر في السلف</span>
-          <strong id="sum-jamiya">0 د.ع</strong>
+        <div class="stat">
+          <span class="stat-label">مدّخر في السلف</span>
+          <strong id="sum-jamiya" class="money">0</strong>
         </div>
       </div>
     </header>
@@ -155,9 +142,9 @@
     <main class="container">
       <!-- السلف (الادخار الجماعي) -->
       <section class="card">
-        <div class="card-header">
-          <h2>🤝 السلف</h2>
-          <button type="button" id="add-jamiya" class="small-btn">+ سلفة</button>
+        <div class="card-head">
+          <h2 class="card-title"><svg class="ic"><use href="icons/sprite.svg#i-users"/></svg> السلف</h2>
+          <button type="button" id="add-jamiya" class="chip-btn"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> سلفة</button>
         </div>
         <p class="hint start">أقساط السلفة ادخار، ولا تُحسب من مصاريفك.</p>
         <div id="jamiya-list"></div>
@@ -165,9 +152,9 @@
 
       <!-- الديون -->
       <section class="card">
-        <div class="card-header">
-          <h2>💵 الديون</h2>
-          <button type="button" id="add-loan" class="small-btn">+ دين</button>
+        <div class="card-head">
+          <h2 class="card-title"><svg class="ic"><use href="icons/sprite.svg#i-hand-coins"/></svg> الديون</h2>
+          <button type="button" id="add-loan" class="chip-btn"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> دين</button>
         </div>
         <div id="loan-list"></div>
         <details id="settled-loans" class="settled" hidden>
@@ -178,10 +165,77 @@
     </main>
   </div>
 
-  <!-- شريط التنقل بين الصفحتين -->
+  <!-- ===== المزيد: الإعدادات والبيانات ===== -->
+  <div id="view-more" class="view" hidden>
+    <header class="page-top compact">
+      <h1 class="page-title">المزيد</h1>
+    </header>
+
+    <main class="container">
+      <h2 class="section-label">الإعدادات</h2>
+      <div class="card menu">
+        <button type="button" id="manage-categories" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-tags"/></svg></span>
+          <span class="menu-text"><b>التصنيفات</b></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+        <button type="button" id="open-budget" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-target"/></svg></span>
+          <span class="menu-text"><b>الميزانية الشهرية</b></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+        <button type="button" id="open-recurring" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-repeat"/></svg></span>
+          <span class="menu-text"><b>المصاريف الثابتة</b><small>تُضاف وحدها كل شهر</small></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+        <button type="button" id="open-work" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-briefcase"/></svg></span>
+          <span class="menu-text"><b>راتبي وساعات عملي</b></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+      </div>
+
+      <div class="list-head">
+        <h2 class="section-label">المواسم</h2>
+        <button type="button" id="manage-seasons" class="chip-btn"><svg class="ic sm"><use href="icons/sprite.svg#i-settings-2"/></svg> تعديل</button>
+      </div>
+      <div class="card">
+        <ul id="season-list" class="season-list"></ul>
+        <p class="hint start">مواعيد المواسم الهجرية تقريبية، وقد تختلف بيوم حسب رؤية الهلال.</p>
+      </div>
+
+      <h2 class="section-label">بياناتي</h2>
+      <div class="card menu">
+        <p class="menu-note" id="backup-status"></p>
+        <button type="button" id="export-backup" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-save"/></svg></span>
+          <span class="menu-text"><b>حفظ نسخة احتياطية</b></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+        <button type="button" id="import-backup" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-folder-open"/></svg></span>
+          <span class="menu-text"><b>استرجاع من نسخة احتياطية</b></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+        <button type="button" id="export-csv" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-sheet"/></svg></span>
+          <span class="menu-text"><b>تصدير إلى Excel</b></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+        <input type="file" id="import-file" accept=".json,application/json" hidden>
+      </div>
+      <p class="hint">مصاريفي · بياناتك محفوظة في هذا الجوال فقط</p>
+    </main>
+  </div>
+
+  <!-- شريط التنقل بين الصفحات، وزر الإضافة في وسطه -->
   <nav class="tab-bar">
-    <button type="button" class="tab active" data-view="view-expenses">💸 المصاريف</button>
-    <button type="button" class="tab" data-view="view-social">🤝 السلفة والديون <span id="social-dot" class="dot" hidden></span></button>
+    <button type="button" class="tab active" data-view="view-home"><svg class="ic"><use href="icons/sprite.svg#i-house"/></svg><span>الرئيسية</span></button>
+    <button type="button" class="tab" data-view="view-expenses"><svg class="ic"><use href="icons/sprite.svg#i-list"/></svg><span>المصاريف</span></button>
+    <button type="button" id="add-btn" class="add-btn" aria-label="إضافة مصروف"><svg class="ic lg"><use href="icons/sprite.svg#i-plus"/></svg></button>
+    <button type="button" class="tab" data-view="view-social"><svg class="ic"><use href="icons/sprite.svg#i-hand-coins"/></svg><span>السلفة والديون</span><span id="social-dot" class="dot" hidden></span></button>
+    <button type="button" class="tab" data-view="view-more"><svg class="ic"><use href="icons/sprite.svg#i-menu"/></svg><span>المزيد</span></button>
   </nav>
 
   <!-- نافذة إضافة/تعديل مصروف -->
@@ -189,7 +243,7 @@
     <form id="expense-form">
       <div class="sheet-header">
         <h2 id="form-title">إضافة مصروف</h2>
-        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
 
       <label>
@@ -230,7 +284,7 @@
   <dialog id="categories-dialog" class="sheet">
     <div class="sheet-header">
       <h2>التصنيفات</h2>
-      <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
     </div>
 
     <ul id="category-list" class="category-list"></ul>
@@ -251,7 +305,7 @@
   <dialog id="import-dialog" class="sheet">
     <div class="sheet-header">
       <h2>استرجاع من نسخة احتياطية</h2>
-      <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
     </div>
     <p id="import-summary" class="import-summary"></p>
     <div class="data-actions">
@@ -267,7 +321,7 @@
     <form id="work-form">
       <div class="sheet-header">
         <h2>راتبي وساعات عملي</h2>
-        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
       <p class="hint start">🔒 هذه الأرقام تبقى في جوالك فقط، ولا تُحفظ في النسخة الاحتياطية.</p>
       <label>
@@ -293,7 +347,7 @@
     <form id="jamiya-form">
       <div class="sheet-header">
         <h2 id="jamiya-form-title">سلفة جديدة</h2>
-        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
       <label>
         اسم السلفة
@@ -326,7 +380,7 @@
     <form id="loan-form">
       <div class="sheet-header">
         <h2 id="loan-form-title">دين جديد</h2>
-        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
       <div class="segmented two">
         <label><input type="radio" name="direction" value="lent" checked> 📤 أعطيت</label>
@@ -363,7 +417,7 @@
     <form id="payment-form">
       <div class="sheet-header">
         <h2 id="payment-title">تسجيل دفعة</h2>
-        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
       <p id="payment-remaining" class="search-summary"></p>
       <label>
@@ -382,7 +436,7 @@
   <dialog id="seasons-dialog" class="sheet">
     <div class="sheet-header">
       <h2>المواسم</h2>
-      <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
     </div>
     <label>
       نبّهني قبل الموسم بـ
@@ -430,7 +484,7 @@
     <form id="budget-form">
       <div class="sheet-header">
         <h2>🎯 الميزانية الشهرية</h2>
-        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
       <label>
         ميزانية الشهر كله (دينار عراقي)
@@ -447,7 +501,7 @@
   <dialog id="recurring-dialog" class="sheet">
     <div class="sheet-header">
       <h2>🔁 المصاريف الثابتة</h2>
-      <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
     </div>
     <p class="hint start">تُضاف وحدها كل شهر في يومها. لإضافة مصروف ثابت: اضغط + واختر "يتكرر كل شهر".</p>
     <ul id="recurring-list" class="category-list"></ul>

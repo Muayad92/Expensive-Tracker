@@ -28,6 +28,18 @@ const ICON_CHOICES = [
 
 const $ = (id) => document.getElementById(id);
 
+// أيقونة من icons/sprite.svg، مثلاً icon("trash-2") أو icon("plus", "sm")
+function icon(name, size = "") {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", size ? `ic ${size}` : "ic");
+  svg.setAttribute("aria-hidden", "true");
+  const use = document.createElementNS(NS, "use");
+  use.setAttribute("href", `icons/sprite.svg#i-${name}`);
+  svg.appendChild(use);
+  return svg;
+}
+
 const expenseDialog = $("expense-dialog");
 const form = $("expense-form");
 const formTitle = $("form-title");
@@ -133,10 +145,11 @@ if (migrated) save();
 
 // ===== ألوان القرص الدائري =====
 
-// 8 ألوان مختبرة لعمى الألوان. كل تصنيف يأخذ لوناً ثابتاً (colorSlot) يبقى معه دائماً،
+// 8 ألوان مختبرة لعمى الألوان (معرّفة في style.css باسم --series-1 إلى --series-8،
+// ولها درجات خاصة بالوضع الليلي). كل تصنيف يأخذ لوناً ثابتاً (colorSlot) يبقى معه دائماً،
 // حتى لا تتغير ألوان التصنيفات عند تغيّر ترتيبها أو حذف غيرها
-const CHART_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
-const CHART_REST_COLOR = "#a3a29c"; // رمادي لـ "باقي التصنيفات"
+const CHART_SLOTS = 8;
+const CHART_REST_COLOR = "var(--series-rest)"; // رمادي لـ "باقي التصنيفات"
 
 function assignColorSlots() {
   const used = new Set(categories.map((c) => c.colorSlot).filter((n) => Number.isInteger(n)));
@@ -147,7 +160,7 @@ function assignColorSlots() {
   }
   for (const cat of categories) {
     if (Number.isInteger(cat.colorSlot)) continue;
-    const free = CHART_COLORS.findIndex((_, i) => !used.has(i));
+    const free = [...Array(CHART_SLOTS).keys()].findIndex((i) => !used.has(i));
     if (free === -1) return; // نفدت الألوان: التصنيفات الباقية تظهر ضمن "باقي التصنيفات"
     cat.colorSlot = free;
     used.add(free);
@@ -157,7 +170,7 @@ assignColorSlots();
 
 function categoryColor(id) {
   const slot = getCategory(id).colorSlot;
-  return Number.isInteger(slot) ? CHART_COLORS[slot] : null;
+  return Number.isInteger(slot) ? `var(--series-${slot + 1})` : null;
 }
 
 // الراتب وساعات العمل: { salary, days, hours } أو null إذا لم يُدخلها المستخدم
@@ -215,12 +228,21 @@ function shiftMonth(month, delta) {
 
 function monthLabel(month) {
   const [y, m] = month.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
+  // أسماء الأشهر بالإنجليزية: October 2026
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
 // الدينار العراقي بدون كسور وبفواصل الآلاف: 25,000 د.ع
 function formatMoney(value) {
   return `${Math.round(value).toLocaleString("en-US")} د.ع`;
+}
+
+// المبلغ كبيراً و"د.ع" بعده بخط أصغر
+function setMoney(element, value) {
+  element.replaceChildren(
+    document.createTextNode(Math.round(value).toLocaleString("en-US")),
+    el("small", "money-unit", "د.ع")
+  );
 }
 
 // تحويل الأرقام العربية (٠-٩) والفارسية (۰-۹) إلى إنجليزية وحذف ما ليس رقماً
@@ -268,12 +290,13 @@ function render() {
   // الترويسة
   const monthTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
   monthNameEl.textContent = monthLabel(viewMonth);
-  monthTotalEl.textContent = formatMoney(monthTotal);
+  $("list-month-name").textContent = monthLabel(viewMonth);
+  setMoney(monthTotalEl, monthTotal);
   thisMonthBtn.hidden = viewMonth === currentMonth;
   workSummaryEl.hidden = !work || monthTotal === 0;
   if (work && monthTotal > 0) {
     const ofSalary = Math.round((monthTotal / work.salary) * 100);
-    workSummaryEl.textContent = `⏱ ${workTime(monthTotal)} · ${ofSalary}% من راتبك`;
+    workSummaryEl.replaceChildren(icon("clock", "sm"), `${workTime(monthTotal)} · ${ofSalary}% من راتبك`);
   }
   setupWorkBtn.hidden = Boolean(work) || expenses.length === 0;
 
@@ -320,25 +343,31 @@ function renderExpense(exp) {
     if (event.key === "Enter") openForm(exp);
   });
 
+  // أيقونة التصنيف داخل دائرة بلونه
+  const badge = el("span", "cat-icon", cat.icon);
+  const color = categoryColor(cat.id);
+  if (color) badge.style.setProperty("--c", color);
+
   const info = el("div", "expense-info");
-  const worthMark = (exp.worth === "no" ? " 👎" : exp.worth === "yes" ? " 👍" : "") + (exp.recurringId ? " 🔁" : "");
-  info.append(
-    el("div", "expense-category", `${cat.icon} ${cat.name}${worthMark}`),
-    el("div", "expense-meta", exp.note ? `${exp.date} · ${exp.note}` : exp.date)
-  );
+  const title = el("div", "expense-category", cat.name);
+  if (exp.worth === "no") title.appendChild(el("span", "tag bad", "ندمت"));
+  if (exp.worth === "yes") title.appendChild(el("span", "tag good", "يستحق"));
+  if (exp.recurringId) title.appendChild(el("span", "tag", "ثابت"));
+  info.append(title, el("div", "expense-meta", exp.note ? `${exp.date} · ${exp.note}` : exp.date));
 
-  const amount = el("div", "expense-amount", formatMoney(exp.amount));
-  if (work) amount.appendChild(el("div", "expense-hours", `⏱ ${workTime(exp.amount)}`));
+  const amount = el("div", "expense-amount", Math.round(exp.amount).toLocaleString("en-US"));
+  if (work) amount.appendChild(el("div", "expense-hours", workTime(exp.amount)));
 
-  const btn = el("button", "delete-btn", "🗑");
+  const btn = el("button", "delete-btn");
   btn.type = "button";
   btn.setAttribute("aria-label", "حذف");
+  btn.appendChild(icon("trash-2"));
   btn.addEventListener("click", (event) => {
     event.stopPropagation();
     deleteExpense(exp.id);
   });
 
-  item.append(info, amount, btn);
+  item.append(badge, info, amount, btn);
   return item;
 }
 
@@ -426,7 +455,7 @@ function renderPie(slices, total) {
     const largeArc = sweep > Math.PI ? 1 : 0;
     const path = document.createElementNS(NS, "path");
     path.setAttribute("d", `M0 0 L${x1.toFixed(2)} ${y1.toFixed(2)} A${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`);
-    path.setAttribute("fill", slice.color);
+    path.style.fill = slice.color;
     path.setAttribute("class", "pie-slice");
     path.dataset.slice = slice.id;
     const title = document.createElementNS(NS, "title");
@@ -515,7 +544,7 @@ function openForm(exp) {
 function updateAmountHours() {
   const amount = Number(toDigits(amountInput.value));
   amountHoursEl.hidden = !work || !(amount > 0);
-  if (!amountHoursEl.hidden) amountHoursEl.textContent = `⏱ = ${workTime(amount)}`;
+  if (!amountHoursEl.hidden) amountHoursEl.textContent = `= ${workTime(amount)}`;
 }
 
 function deleteExpense(id) {
@@ -591,6 +620,9 @@ $("next-month").addEventListener("click", () => {
   render();
 });
 
+$("list-prev-month").addEventListener("click", () => $("prev-month").click());
+$("list-next-month").addEventListener("click", () => $("next-month").click());
+
 thisMonthBtn.addEventListener("click", () => {
   viewMonth = todayString().slice(0, 7);
   render();
@@ -613,7 +645,8 @@ function renderCategoryList() {
     li.appendChild(editBtn);
 
     if (cat.id !== OTHER_ID) {
-      const delBtn = el("button", "delete-btn", "🗑");
+      const delBtn = el("button", "delete-btn");
+      delBtn.appendChild(icon("trash-2"));
       delBtn.type = "button";
       delBtn.setAttribute("aria-label", `حذف ${cat.name}`);
       delBtn.addEventListener("click", () => deleteCategory(cat, count));
@@ -898,7 +931,7 @@ function renderRegretStats(monthExpenses) {
   } else {
     const percent = Math.round((regretSum / ratedSum) * 100);
     content.appendChild(el("p", "regret-total", `ندمت على ${formatMoney(regretSum)}`));
-    if (work) content.appendChild(el("p", "regret-detail", `⏱ أي ${workTime(regretSum)}`));
+    if (work) content.appendChild(el("p", "regret-detail", `أي ${workTime(regretSum)}`));
     content.appendChild(el("p", "regret-detail", `${percent}% من المبلغ الذي قيّمته`));
 
     const bar = el("div", "regret-bar");
@@ -1068,7 +1101,7 @@ function parseBackup(text) {
       id: c.id,
       name: c.name.trim().slice(0, 30),
       icon: typeof c.icon === "string" ? c.icon.slice(0, 8) : "🏷️",
-      ...(Number.isInteger(c.colorSlot) && c.colorSlot >= 0 && c.colorSlot < CHART_COLORS.length ? { colorSlot: c.colorSlot } : {}),
+      ...(Number.isInteger(c.colorSlot) && c.colorSlot >= 0 && c.colorSlot < CHART_SLOTS ? { colorSlot: c.colorSlot } : {}),
     });
   }
 
