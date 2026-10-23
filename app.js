@@ -195,6 +195,13 @@ function todayString() {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+// تاريخ اليوم مضافاً إليه (أو مطروحاً منه) عدد من الأيام، بصيغة YYYY-MM-DD
+function isoDateOffset(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // إضافة أشهر إلى شهر بصيغة YYYY-MM
 function shiftMonth(month, delta) {
   const [y, m] = month.split("-").map(Number);
@@ -529,37 +536,167 @@ function roundedPercents(values, total) {
   return result;
 }
 
-// قائمة التصنيفات داخل نموذج المصروف
-function fillCategorySelect(selectedId) {
-  categoryInput.innerHTML = "";
-  for (const group of GROUPS) {
-    const optgroup = el("optgroup");
-    optgroup.label = group.name;
-    for (const cat of categories.filter((c) => c.group === group.id)) {
-      const option = el("option", "", cat.name);
-      option.value = cat.id;
-      optgroup.appendChild(option);
-    }
-    if (optgroup.childElementCount) categoryInput.appendChild(optgroup);
-  }
-  categoryInput.value = getCategory(selectedId)?.id || categories[0].id;
+// ===== نافذة الإضافة: لوحة الأرقام =====
+
+// المبلغ يُكتب كعملية جمع بسيطة، مثل "5000+3000"
+let amountExpr = "";
+const AMOUNT_MAX_DIGITS = 12;
+
+function amountTerms() {
+  return amountExpr.split("+").filter(Boolean).map(Number);
 }
+
+function pressKey(key) {
+  const last = amountExpr.split("+").pop();
+  if (/^\d$/.test(key)) {
+    if (last.length >= AMOUNT_MAX_DIGITS) return;
+    // لا أصفار في بداية الرقم
+    amountExpr = last === "0" ? amountExpr.slice(0, -1) + key : amountExpr + key;
+  } else if (key === "000") {
+    if (last && last !== "0" && last.length + 3 <= AMOUNT_MAX_DIGITS) amountExpr += "000";
+  } else if (key === "plus") {
+    if (last) amountExpr += "+";
+  } else if (key === "back") {
+    amountExpr = amountExpr.slice(0, -1);
+  } else if (key === "clear") {
+    amountExpr = "";
+  }
+  updateAmountDisplay();
+}
+
+function updateAmountDisplay() {
+  const terms = amountTerms();
+  const total = terms.reduce((a, b) => a + b, 0);
+  $("amount-value").textContent = total.toLocaleString("en-US");
+  const expr = $("amount-expr");
+  expr.hidden = !amountExpr.includes("+");
+  expr.textContent = amountExpr
+    .split("+")
+    .map((t) => (t ? Number(t).toLocaleString("en-US") : ""))
+    .join(" + ");
+  amountInput.value = total || "";
+  updateAmountHours();
+}
+
+for (const btn of document.querySelectorAll("#keypad button")) {
+  btn.addEventListener("click", () => pressKey(btn.dataset.key));
+}
+
+// لوحة مفاتيح الكمبيوتر أيضاً: الأرقام (العربية والإنجليزية) و+ والمسح وEnter للحفظ
+document.addEventListener("keydown", (event) => {
+  if (!expenseDialog.open) return;
+  const target = event.target;
+  if (target instanceof Element && target.matches("input[type=text], input[type=date], input[type=search]")) return;
+  const digit = toDigits(event.key);
+  if (event.key.length === 1 && digit.length === 1) pressKey(digit);
+  else if (event.key === "+") pressKey("plus");
+  else if (event.key === "Backspace") pressKey("back");
+  else if (event.key === "Delete") pressKey("clear");
+  else if (event.key === "Enter") form.requestSubmit();
+  else return;
+  event.preventDefault();
+});
+
+// ===== نافذة الإضافة: اختيار التصنيف =====
+
+const QUICK_CATEGORY_COUNT = 6;
+const QUICK_CATEGORY_DAYS = 90;
+// قبل أن يتجمع تاريخ استخدام كافٍ: أكثر ما يُصرف عليه يومياً
+const STARTER_CATEGORIES = ["groceries", "bread", "fuel", "taxi", "cafe", "mobile-credit"];
+let pickerGroup = null;
+
+function visibleCategories() {
+  return categories.filter((c) => !c.hidden);
+}
+
+// أكثر التصنيفات استخداماً في آخر 3 أشهر، ثم نكمل من القائمة الافتراضية
+function topCategories() {
+  const since = isoDateOffset(-QUICK_CATEGORY_DAYS);
+  const counts = {};
+  for (const e of expenses) {
+    if (e.recurringId || e.date < since) continue;
+    counts[e.categoryId] = (counts[e.categoryId] || 0) + 1;
+  }
+  const visible = visibleCategories();
+  const ids = Object.keys(counts)
+    .filter((id) => visible.some((c) => c.id === id))
+    .sort((a, b) => counts[b] - counts[a]);
+  for (const id of [...STARTER_CATEGORIES, ...visible.map((c) => c.id)]) {
+    if (ids.length >= QUICK_CATEGORY_COUNT) break;
+    if (!ids.includes(id) && visible.some((c) => c.id === id)) ids.push(id);
+  }
+  return ids.slice(0, QUICK_CATEGORY_COUNT).map(getCategory);
+}
+
+function categoryButton(cat, className) {
+  const btn = el("button", className);
+  btn.type = "button";
+  btn.dataset.category = cat.id;
+  if (categoryInput.value === cat.id) btn.classList.add("selected");
+  btn.append(catBadge(cat, className === "cat-tile" ? "big" : "sm"), el("span", "", cat.name));
+  btn.addEventListener("click", () => selectCategory(cat.id));
+  return btn;
+}
+
+function renderCategoryPicker() {
+  const top = topCategories();
+  // التصنيف المختار يظهر في الصف الأول دائماً
+  const selected = categoryInput.value && getCategory(categoryInput.value);
+  if (selected && !top.includes(selected)) {
+    top.unshift(selected);
+    top.pop();
+  }
+  $("top-categories").replaceChildren(...top.map((cat) => categoryButton(cat, "cat-chip")));
+
+  const tabs = $("group-tabs");
+  tabs.innerHTML = "";
+  for (const group of GROUPS) {
+    if (!visibleCategories().some((c) => c.group === group.id) && !(selected && selected.group === group.id)) continue;
+    const tab = el("button", group.id === pickerGroup ? "group-tab active" : "group-tab");
+    tab.type = "button";
+    tab.style.setProperty("--c", groupColor(group.id));
+    tab.append(icon(group.icon, "sm"), group.name);
+    tab.addEventListener("click", () => {
+      pickerGroup = group.id;
+      renderCategoryPicker();
+    });
+    tabs.appendChild(tab);
+  }
+  const inGroup = categories.filter((c) => c.group === pickerGroup && (!c.hidden || c === selected));
+  $("category-grid").replaceChildren(...inGroup.map((cat) => categoryButton(cat, "cat-tile")));
+}
+
+function selectCategory(id) {
+  categoryInput.value = id;
+  pickerGroup = getCategory(id).group;
+  renderCategoryPicker();
+}
+
+$("show-all-cats").addEventListener("click", () => {
+  const all = $("all-categories");
+  all.hidden = !all.hidden;
+  $("show-all-cats").classList.toggle("open", !all.hidden);
+});
 
 // ===== إضافة وتعديل وحذف المصاريف =====
 
 function openForm(exp) {
   form.reset();
   editingId = exp ? exp.id : null;
-  formTitle.textContent = exp ? "تعديل مصروف" : "إضافة مصروف";
+  formTitle.textContent = exp ? "تعديل مصروف" : "مصروف جديد";
   deleteInFormBtn.hidden = !exp;
   // التقييم يظهر عند التعديل فقط، حتى تبقى الإضافة سريعة
   worthField.hidden = !exp;
   // التكرار الشهري يُختار عند الإضافة فقط
   $("recurring-row").hidden = Boolean(exp);
-  fillCategorySelect(exp ? exp.categoryId : categories[0].id);
+
+  amountExpr = exp ? String(exp.amount) : "";
+  categoryInput.value = exp ? getCategory(exp.categoryId).id : "";
+  pickerGroup = exp ? getCategory(exp.categoryId).group : GROUPS[0].id;
+  $("all-categories").hidden = true;
+  $("show-all-cats").classList.remove("open");
 
   if (exp) {
-    amountInput.value = exp.amount.toLocaleString("en-US");
     dateInput.value = exp.date;
     noteInput.value = exp.note || "";
     const worth = exp.worth === "yes" || exp.worth === "no" ? exp.worth : "";
@@ -570,43 +707,51 @@ function openForm(exp) {
     dateInput.value = today.startsWith(viewMonth) ? today : `${viewMonth}-01`;
   }
 
-  updateAmountHours();
+  updateAmountDisplay();
+  renderCategoryPicker();
   expenseDialog.showModal();
-  if (!exp) amountInput.focus();
+  // لا نضع التركيز على أي خانة حتى لا تظهر لوحة مفاتيح الجوال فوق لوحة الأرقام
+  document.activeElement?.blur();
 }
 
-// "= ساعتان عمل" تحت خانة المبلغ أثناء الكتابة
+// "= ساعتان عمل" تحت المبلغ أثناء الكتابة
 function updateAmountHours() {
-  const amount = Number(toDigits(amountInput.value));
+  const amount = Number(amountInput.value);
   amountHoursEl.hidden = !work || !(amount > 0);
   if (!amountHoursEl.hidden) amountHoursEl.textContent = `= ${workTime(amount)}`;
 }
 
+// الحذف بلا سؤال، مع زر "تراجع" لبضع ثوانٍ
 function deleteExpense(id) {
-  if (!confirm("هل تريد حذف هذا المصروف؟")) return false;
-  expenses = expenses.filter((e) => e.id !== id);
+  const index = expenses.findIndex((e) => e.id === id);
+  if (index === -1) return false;
+  const [removed] = expenses.splice(index, 1);
   save();
   render();
+  showToast(`حُذف ${getCategory(removed.categoryId).name} ${formatMoney(removed.amount)}`, () => {
+    expenses.splice(Math.min(index, expenses.length), 0, removed);
+    save();
+    render();
+  });
   return true;
 }
 
-// تنسيق المبلغ بفواصل الآلاف أثناء الكتابة
+// تنسيق المبلغ بفواصل الآلاف أثناء الكتابة (لخانات المبالغ الأخرى في التطبيق)
 function formatMoneyInput(input) {
   const digits = toDigits(input.value).replace(/^0+/, "");
   input.value = digits ? Number(digits).toLocaleString("en-US") : "";
 }
 
-amountInput.addEventListener("input", () => {
-  formatMoneyInput(amountInput);
-  updateAmountHours();
-});
-
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
-  const amount = Number(toDigits(amountInput.value));
+  const amount = Number(amountInput.value);
   if (!(amount > 0)) {
-    alert("الرجاء إدخال مبلغ صحيح أكبر من صفر.");
+    showToast("اكتب المبلغ أولاً");
+    return;
+  }
+  if (!categoryInput.value) {
+    showToast("اختر التصنيف");
     return;
   }
 
@@ -634,6 +779,7 @@ form.addEventListener("submit", (event) => {
   save();
   render();
   expenseDialog.close();
+  showToast(editingId === null ? `أُضيف ${getCategory(data.categoryId).name} ${formatMoney(amount)}` : "حُفظ التعديل");
   if (editingId === null) notifyBudget(data);
 });
 

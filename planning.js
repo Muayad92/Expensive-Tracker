@@ -142,7 +142,7 @@ function notifyBudget(exp) {
   check(budgets.total, monthSpent(month), "ميزانية الشهر");
   const cat = getCategory(exp.categoryId);
   check(budgets.byCategory[cat.id], monthSpent(month, cat.id), `ميزانية ${cat.name}`);
-  if (messages.length) showToast(messages.join(" · "));
+  if (messages.length) showToast(messages.join(" · "), null, true);
 }
 
 // ===== نافذة الميزانية =====
@@ -356,10 +356,12 @@ function quickAdd(s) {
 let toastTimer = null;
 let toastUndo = null;
 
-function showToast(text, undo) {
+// append: تُضاف الرسالة تحت الرسالة الظاهرة بدل أن تحل محلها (مثل تنبيه الميزانية بعد "أُضيف")
+function showToast(text, undo, append = false) {
   const toast = $("toast");
-  // إذا كانت هناك رسالة ظاهرة، نضيف إليها بدل أن نمسحها
-  $("toast-text").textContent = toast.hidden || !toastTimer ? text : `${$("toast-text").textContent}\n${text}`;
+  const keep = append && !toast.hidden;
+  $("toast-text").textContent = keep ? `${$("toast-text").textContent}\n${text}` : text;
+  if (!keep) toastUndo = null;
   if (undo) toastUndo = undo;
   $("toast-undo").hidden = !toastUndo;
   toast.hidden = false;

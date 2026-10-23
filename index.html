@@ -240,45 +240,79 @@
     <button type="button" class="tab" data-view="view-more"><svg class="ic"><use href="icons/sprite.svg#i-menu"/></svg><span>المزيد</span></button>
   </nav>
 
-  <!-- نافذة إضافة/تعديل مصروف -->
-  <dialog id="expense-dialog" class="sheet">
+  <!-- نافذة إضافة/تعديل مصروف: المبلغ من لوحة الأرقام، ثم التصنيف -->
+  <dialog id="expense-dialog" class="sheet add-sheet">
     <form id="expense-form">
       <div class="sheet-header">
-        <h2 id="form-title">إضافة مصروف</h2>
+        <h2 id="form-title">مصروف جديد</h2>
         <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
 
-      <label>
-        المبلغ (دينار عراقي)
-        <input type="text" id="amount" inputmode="numeric" autocomplete="off" required placeholder="مثال: 25,000">
-        <span id="amount-hours" class="amount-hours" hidden></span>
-      </label>
-      <label>
-        التصنيف
-        <select id="category" required></select>
-      </label>
-      <label>
-        التاريخ
-        <input type="date" id="date" required>
-      </label>
-      <label>
-        ملاحظة
-        <input type="text" id="note" maxlength="200" placeholder="اختياري">
-      </label>
+      <div class="amount-display" aria-live="polite">
+        <p id="amount-expr" class="amount-expr money" hidden></p>
+        <p class="amount-big money"><span id="amount-value">0</span><small class="money-unit">د.ع</small></p>
+        <p id="amount-hours" class="amount-hours" hidden></p>
+      </div>
+      <input type="hidden" id="amount">
+
+      <!-- لوحة الأرقام: 000 لأن مبالغ الدينار كبيرة، و+ لجمع أكثر من مبلغ -->
+      <div class="keypad" id="keypad">
+        <button type="button" data-key="1">1</button>
+        <button type="button" data-key="2">2</button>
+        <button type="button" data-key="3">3</button>
+        <button type="button" data-key="back" class="key-fn" aria-label="مسح رقم"><svg class="ic"><use href="icons/sprite.svg#i-delete"/></svg></button>
+        <button type="button" data-key="4">4</button>
+        <button type="button" data-key="5">5</button>
+        <button type="button" data-key="6">6</button>
+        <button type="button" data-key="plus" class="key-fn" aria-label="جمع"><svg class="ic"><use href="icons/sprite.svg#i-plus"/></svg></button>
+        <button type="button" data-key="7">7</button>
+        <button type="button" data-key="8">8</button>
+        <button type="button" data-key="9">9</button>
+        <button type="button" data-key="clear" class="key-fn key-text">مسح</button>
+        <button type="button" data-key="000" class="key-wide">000</button>
+        <button type="button" data-key="0" class="key-wide">0</button>
+      </div>
+
+      <!-- التصنيف: الأكثر استخداماً أولاً -->
+      <div class="picker">
+        <div class="picker-head">
+          <span class="picker-label">التصنيف</span>
+          <button type="button" id="show-all-cats" class="link-btn">كل التصنيفات <svg class="ic sm"><use href="icons/sprite.svg#i-chevron-down"/></svg></button>
+        </div>
+        <div id="top-categories" class="cat-chips"></div>
+        <div id="all-categories" hidden>
+          <div id="group-tabs" class="group-tabs"></div>
+          <div id="category-grid" class="cat-grid"></div>
+        </div>
+      </div>
+      <input type="hidden" id="category">
+
+      <div class="field-row">
+        <label class="field">
+          <svg class="ic sm"><use href="icons/sprite.svg#i-calendar"/></svg>
+          <input type="date" id="date" required aria-label="التاريخ">
+        </label>
+        <label class="field grow">
+          <svg class="ic sm"><use href="icons/sprite.svg#i-pencil"/></svg>
+          <input type="text" id="note" maxlength="200" placeholder="ملاحظة (اختياري)" aria-label="ملاحظة">
+        </label>
+      </div>
       <label id="recurring-row" class="check-row">
         <input type="checkbox" id="recurring">
-        <span>🔁 يتكرر كل شهر في اليوم نفسه <small>(مثل الإيجار والاشتراكات)</small></span>
+        <span><svg class="ic sm"><use href="icons/sprite.svg#i-repeat"/></svg> يتكرر كل شهر <small>(مثل الإيجار والاشتراكات)</small></span>
       </label>
       <fieldset id="worth-field" class="worth-field" hidden>
         <legend>هل كان يستحق؟</legend>
         <div class="segmented">
-          <label><input type="radio" name="worth" value="yes"> 👍 يستحق</label>
-          <label><input type="radio" name="worth" value="no"> 👎 ندمت</label>
+          <label><input type="radio" name="worth" value="yes"> يستحق</label>
+          <label><input type="radio" name="worth" value="no"> ندمت</label>
           <label><input type="radio" name="worth" value=""> لم أقيّمه</label>
         </div>
       </fieldset>
-      <button type="submit" class="primary-btn">حفظ</button>
       <button type="button" id="delete-in-form" class="danger-btn" hidden>حذف هذا المصروف</button>
+      <div class="sheet-actions">
+        <button type="submit" class="primary-btn">حفظ</button>
+      </div>
     </form>
   </dialog>
 
