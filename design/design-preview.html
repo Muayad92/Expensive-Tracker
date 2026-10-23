@@ -1,0 +1,299 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>التصميم الجديد</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f5f1;--surface:#fff;--surface-2:#f0efe9;--text:#1a1c1a;--text-2:#5f625d;--muted:#8b8d87;--border:#e6e4dd;
+--primary:#0f7b5f;--primary-strong:#0b5e48;--primary-soft:#e3f2ec;--warn:#b45309;--warn-soft:#fdf1e2;--bad:#b91c1c;--bad-soft:#fbeaea}
+*{box-sizing:border-box} body{margin:0;background:#dcdad3;font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;color:var(--text);padding:24px 16px}
+h1{text-align:center;font-size:20px;margin:0 0 4px} .intro{text-align:center;color:#555;margin:0 0 24px;font-size:14px}
+.grid{display:flex;flex-wrap:wrap;gap:28px;justify-content:center}
+.phone{width:360px;max-width:100%;height:760px;background:var(--bg);border-radius:36px;position:relative;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.18);border:8px solid #1d1f1e}
+.screen{height:100%;overflow:hidden;padding:0 14px 90px} .screen.dim{background:var(--bg)}
+.cap{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#1d1f1e;color:#fff;font-size:12px;padding:3px 12px;border-radius:0 0 10px 10px;white-space:nowrap;z-index:5}
+.top{padding:34px 4px 14px;text-align:center} .top.slim{padding-bottom:6px}
+.month{display:flex;align-items:center;justify-content:center;gap:14px;font-weight:600;font-size:15px}
+.mbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;color:var(--text-2)}
+.hero-label{margin-top:14px;color:var(--text-2);font-size:14px} .hero{font-size:40px;font-weight:700;letter-spacing:-.5px;line-height:1.2} .hero small{font-size:16px;font-weight:500;color:var(--text-2)}
+.hero-sub{display:inline-flex;gap:6px;align-items:center;color:var(--primary);background:var(--primary-soft);padding:4px 12px;border-radius:999px;font-size:13px;font-weight:500;margin-top:6px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:14px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px} .t{font-weight:600;font-size:15px;display:inline-flex;gap:6px;align-items:center}
+.small{font-size:12.5px;color:var(--text-2)} .muted{color:var(--muted)}
+.meter{height:8px;background:var(--surface-2);border-radius:99px;margin:10px 0 8px;overflow:hidden} .meter i{display:block;height:100%;background:#d98a0b;border-radius:99px}
+.warnchip{display:inline-flex;gap:4px;align-items:center;background:var(--warn-soft);color:var(--warn);font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px}
+.alert{display:flex;gap:10px;align-items:center;background:var(--primary-soft);color:var(--primary-strong);border-radius:16px;padding:12px 14px;margin-bottom:12px} .alert div{flex:1;display:flex;flex-direction:column} .alert span{font-size:12.5px;color:var(--text-2)}
+.pie{direction:ltr;width:100%;max-width:260px;display:block;margin:6px auto 4px}
+.pl{font-size:13px;font-weight:700;text-anchor:middle;dominant-baseline:central;font-family:inherit} .po{font-size:11.5px;font-weight:600;fill:var(--text-2);dominant-baseline:central;font-family:inherit}
+.pc1{font-size:11px;fill:var(--muted);text-anchor:middle;font-family:inherit} .pc2{font-size:20px;font-weight:700;fill:var(--text);text-anchor:middle;font-family:inherit} .pc3{font-size:11px;fill:var(--muted);text-anchor:middle;font-family:inherit}
+.legend{list-style:none;padding:0;margin:4px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px} .legend li{display:flex;align-items:center;gap:6px;font-size:13px} .legend .ln{flex:1;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .legend b{font-weight:600}
+.dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px} .quick button{all:unset;display:flex;gap:8px;align-items:center;border:1px solid var(--border);border-radius:14px;padding:8px 10px} .quick span{display:flex;flex-direction:column;font-size:13px} .quick b{font-size:13px;color:var(--primary)}
+.ci{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);flex-shrink:0} .ci.big{width:46px;height:46px;border-radius:14px}
+.nav{position:absolute;bottom:0;left:0;right:0;height:74px;background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;padding-bottom:8px}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted)} .nav a.on{color:var(--primary);font-weight:600}
+.nav a.plus{width:58px;height:58px;margin:-26px auto 0;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px rgba(15,123,95,.35)}
+.search{display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:11px 14px;color:var(--muted);font-size:14px;margin:8px 0}
+.chips{display:flex;gap:6px;overflow:hidden;margin-bottom:6px} .chip{padding:5px 12px;border-radius:99px;background:var(--surface);border:1px solid var(--border);font-size:13px;white-space:nowrap;color:var(--text-2)} .chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.day{display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);padding:10px 4px 6px} .day b{color:var(--text)}
+.list{list-style:none;margin:0 0 4px;padding:4px 12px} .list li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--surface-2)} .list li:last-child{border-bottom:0}
+.li{flex:1;display:flex;flex-direction:column;min-width:0} .li b{font-size:14.5px;font-weight:600} .li span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .la{font-weight:700;font-size:15px}
+.tag{font-size:10.5px;font-weight:600;background:var(--surface-2);color:var(--text-2);padding:1px 7px;border-radius:99px;vertical-align:middle} .tag.bad{background:var(--bad-soft);color:var(--bad)}
+.sheet{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:26px 26px 0 0;padding:10px 16px 18px;box-shadow:0 -10px 30px rgba(0,0,0,.18)} .phone:has(.sheet) .screen{background:#b9b8b2}
+.grab{width:40px;height:5px;border-radius:9px;background:var(--border);margin:0 auto 8px} .st{font-size:17px}
+.amount{text-align:center;font-size:40px;font-weight:700;margin-top:6px} .amount small{font-size:16px;color:var(--text-2);margin-right:4px;font-weight:500}
+.hours{text-align:center;font-size:12.5px;color:var(--primary);display:flex;gap:4px;justify-content:center;align-items:center;margin-bottom:12px}
+.gtabs{display:flex;gap:6px;overflow:hidden;margin-bottom:10px} .gt{display:inline-flex;gap:5px;align-items:center;white-space:nowrap;padding:6px 10px;border-radius:99px;font-size:12.5px;border:1px solid var(--border);color:var(--text-2)} .gt.on{border-color:var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);font-weight:600}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px} .cg{all:unset;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:14px;border:1.5px solid transparent;font-size:12.5px;text-align:center} .cg.on{border-color:#eb6834;background:#fdf0ea}
+.frow{display:flex;gap:8px;margin-top:12px} .fld{display:flex;gap:6px;align-items:center;font-size:13px;border:1px solid var(--border);border-radius:12px;padding:10px;color:var(--text-2)} .fld.grow{flex:1}
+.rep{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text-2);margin:12px 4px}
+.save{all:unset;display:block;text-align:center;background:var(--primary);color:#fff;font-weight:600;padding:14px;border-radius:14px;width:100%;box-sizing:border-box}
+.ptitle{font-size:22px;font-weight:700;text-align:right} .sec{font-size:13px;color:var(--muted);margin:14px 6px 6px}
+.mi{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary)}
+</style></head><body>
+<h1>التصميم الجديد المقترح · مصاريفي</h1><p class="intro">أخضر زمردي · خط IBM Plex Sans Arabic · أيقونات موحّدة · 4 صفحات</p>
+<div class="grid">
+<div class="phone"><div class="screen">
+ <div class="top">
+  <div class="month"><button class="mbtn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></button><span>تشرين الأول 2026</span><button class="mbtn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button></div>
+  <div class="hero-label">صرفت هذا الشهر</div>
+  <div class="hero">1,075,000 <small>د.ع</small></div>
+  <div class="hero-sub"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" />
+  <polyline points="12 6 12 12 16 14" /></svg> 23 يوم عمل · 54% من راتبك</div>
+ </div>
+ <div class="card budget">
+  <div class="row"><span class="t"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg> الميزانية</span><span class="warnchip"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+  <path d="M12 9v4" />
+  <path d="M12 17h.01" /></svg> 90%</span></div>
+  <div class="meter"><i style="width:90%"></i></div>
+  <div class="row small"><span>بقي <b>125,000</b> د.ع</span><span>≈ 13,750 يومياً لـ 9 أيام</span></div>
+ </div>
+ <div class="alert"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9" />
+  <path d="M20 3v4" />
+  <path d="M22 5h-4" /></svg><div><b>رمضان بعد 19 يوماً</b><span>الموسم الماضي صرفت 300,000 · وفّر 16,000 يومياً</span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></div>
+ <div class="card">
+  <div class="row"><span class="t">توزيع المصاريف</span><span class="muted small">اضغط على أي جزء</span></div>
+  <svg viewBox="-150 -128 300 256" class="pie"><path d="M-92.9 -37.1 A100 100 0 0 1 95.3 -30.2 L55.3 -17.5 A58 58 0 0 0 -53.9 -21.5Z" fill="#2a78d6" stroke="var(--surface)" stroke-width="2.5"/><path d="M95.3 -30.2 A100 100 0 0 1 6.6 99.8 L3.8 57.9 A58 58 0 0 0 55.3 -17.5Z" fill="#eb6834" stroke="var(--surface)" stroke-width="2.5"/><path d="M6.6 99.8 A100 100 0 0 1 -59.4 80.5 L-34.4 46.7 A58 58 0 0 0 3.8 57.9Z" fill="#1baf7a" stroke="var(--surface)" stroke-width="2.5"/><path d="M-59.4 80.5 A100 100 0 0 1 -92.9 37.1 L-53.9 21.5 A58 58 0 0 0 -34.4 46.7Z" fill="#e87ba4" stroke="var(--surface)" stroke-width="2.5"/><path d="M-92.9 37.1 A100 100 0 0 1 -99.6 8.8 L-57.8 5.1 A58 58 0 0 0 -53.9 21.5Z" fill="#6250d6" stroke="var(--surface)" stroke-width="2.5"/><path d="M-99.6 8.8 A100 100 0 0 1 -98.9 -14.6 L-57.4 -8.4 A58 58 0 0 0 -57.8 5.1Z" fill="#eda100" stroke="var(--surface)" stroke-width="2.5"/><path d="M-98.9 -14.6 A100 100 0 0 1 -95.8 -28.8 L-55.5 -16.7 A58 58 0 0 0 -57.4 -8.4Z" fill="#008300" stroke="var(--surface)" stroke-width="2.5"/><path d="M-95.8 -28.8 A100 100 0 0 1 -92.9 -37.1 L-53.9 -21.5 A58 58 0 0 0 -55.5 -16.7Z" fill="#8a8984" stroke="var(--surface)" stroke-width="2.5"/><text x="2.9" y="-78.9" fill="#fff" class="pl">39%</text><text x="65.2" y="44.5" fill="#fff" class="pl">29%</text><text x="-22.2" y="75.8" fill="#1a1c1a" class="pl">11%</text><text x="-62.5" y="48.3" fill="#1a1c1a" class="pl">9%</text><polyline points="-95.3,-33.3 -103.8,-36.3 -118.0,-36.3" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="-121.0" y="-36.3" text-anchor="end" class="po">1%</text><polyline points="-98.6,-22.0 -107.4,-23.9 -118.0,-21.3" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="-121.0" y="-21.3" text-anchor="end" class="po">2%</text><polyline points="-101.0,-3.0 -110.0,-3.2 -118.0,-3.2" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="-121.0" y="-3.2" text-anchor="end" class="po">4%</text><polyline points="-98.3,23.4 -107.0,25.5 -118.0,25.5" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="-121.0" y="25.5" text-anchor="end" class="po">5%</text>
+<text y="-8" class="pc1">مصاريف الشهر</text><text y="16" class="pc2">1,075,000</text><text y="34" class="pc3">د.ع</text></svg>
+  <ul class="legend"><li><span class="dot" style="background:#2a78d6"></span><span class="ln">البيت</span><b>420,000</b></li><li><span class="dot" style="background:#eb6834"></span><span class="ln">الأكل</span><b>310,000</b></li><li><span class="dot" style="background:#1baf7a"></span><span class="ln">النقل</span><b>120,000</b></li><li><span class="dot" style="background:#e87ba4"></span><span class="ln">العائلة</span><b>95,000</b></li><li><span class="dot" style="background:#6250d6"></span><span class="ln">الواجبات الاجتماعية</span><b>50,000</b></li><li><span class="dot" style="background:#eda100"></span><span class="ln">الاتصالات</span><b>40,000</b></li><li><span class="dot" style="background:#008300"></span><span class="ln">الصحة</span><b>25,000</b></li><li><span class="dot" style="background:#8a8984"></span><span class="ln">أخرى</span><b>15,000</b></li></ul>
+ </div>
+ <div class="card">
+  <div class="t">إضافة سريعة</div>
+  <div class="quick">
+   <button><span class="ci" style="--c:#eb6834"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.6 13.11 5.79-3.21c1.89-1.05 4.79 1.78 3.71 3.71l-3.22 5.81C8.8 23.16.79 15.23 4.6 13.11Z" />
+  <path d="m10.5 9.5-1-2.29C9.2 6.48 8.8 6 8 6H4.5C2.79 6 2 6.5 2 8.5a7.71 7.71 0 0 0 2 4.83" />
+  <path d="M8 6c0-1.55.24-4-2-4-2 0-2.5 2.17-2.5 4" />
+  <path d="m14.5 13.5 2.29 1c.73.3 1.21.7 1.21 1.5v3.5c0 1.71-.5 2.5-2.5 2.5a7.71 7.71 0 0 1-4.83-2" />
+  <path d="M18 16c1.55 0 4-.24 4 2 0 2-2.17 2.5-4 2.5" /></svg></span><span>صمون<b>1,000</b></span></button>
+   <button><span class="ci" style="--c:#eb6834"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v2" />
+  <path d="M14 2v2" />
+  <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" />
+  <path d="M6 2v2" /></svg></span><span>شاي<b>500</b></span></button>
+   <button><span class="ci" style="--c:#1baf7a"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" x2="15" y1="22" y2="22" />
+  <line x1="4" x2="14" y1="9" y2="9" />
+  <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18" />
+  <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" /></svg></span><span>بنزين<b>25,000</b></span></button>
+   <button><span class="ci" style="--c:#eda100"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+  <path d="M12 18h.01" /></svg></span><span>كارت آسيا<b>10,000</b></span></button>
+  </div>
+ </div>
+</div>
+ <nav class="nav"><a class="on"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+  <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span>الرئيسية</span></a><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h.01" />
+  <path d="M3 18h.01" />
+  <path d="M3 6h.01" />
+  <path d="M8 12h13" />
+  <path d="M8 18h13" />
+  <path d="M8 6h13" /></svg><span>المصاريف</span></a><a class="plus"><svg class="ic" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" />
+  <path d="M12 5v14" /></svg></a><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17" />
+  <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" />
+  <path d="m2 16 6 6" />
+  <circle cx="16" cy="9" r="2.9" />
+  <circle cx="6" cy="5" r="3" /></svg><span>السلفة والديون</span></a><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12" />
+  <line x1="4" x2="20" y1="6" y2="6" />
+  <line x1="4" x2="20" y1="18" y2="18" /></svg><span>المزيد</span></a></nav>
+ <div class="cap">الرئيسية: نظرة سريعة على الشهر</div>
+</div>
+<div class="phone"><div class="screen">
+ <div class="top slim">
+  <div class="month"><button class="mbtn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></button><span>تشرين الأول 2026</span><button class="mbtn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button></div>
+ </div>
+ <div class="search"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" />
+  <path d="m21 21-4.3-4.3" /></svg><span>بحث في كل المصاريف</span></div>
+ <div class="chips"><span class="chip on">الكل</span><span class="chip">البيت</span><span class="chip">الأكل</span><span class="chip">النقل</span><span class="chip">العائلة</span></div>
+ <div class="day"><span>اليوم</span><b>36,500</b></div>
+ <ul class="list card">
+  <li><span class="ci" style="--c:#eb6834"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.6 13.11 5.79-3.21c1.89-1.05 4.79 1.78 3.71 3.71l-3.22 5.81C8.8 23.16.79 15.23 4.6 13.11Z" />
+  <path d="m10.5 9.5-1-2.29C9.2 6.48 8.8 6 8 6H4.5C2.79 6 2 6.5 2 8.5a7.71 7.71 0 0 0 2 4.83" />
+  <path d="M8 6c0-1.55.24-4-2-4-2 0-2.5 2.17-2.5 4" />
+  <path d="m14.5 13.5 2.29 1c.73.3 1.21.7 1.21 1.5v3.5c0 1.71-.5 2.5-2.5 2.5a7.71 7.71 0 0 1-4.83-2" />
+  <path d="M18 16c1.55 0 4-.24 4 2 0 2-2.17 2.5-4 2.5" /></svg></span><div class="li"><b>خبز وصمون</b><span></span></div><div class="la">1,000</div></li>
+  <li><span class="ci" style="--c:#1baf7a"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" x2="15" y1="22" y2="22" />
+  <line x1="4" x2="14" y1="9" y2="9" />
+  <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18" />
+  <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" /></svg></span><div class="li"><b>بنزين</b><span>سيارة</span></div><div class="la">25,000</div></li>
+  <li><span class="ci" style="--c:#eb6834"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v2" />
+  <path d="M14 2v2" />
+  <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" />
+  <path d="M6 2v2" /></svg></span><div class="li"><b>كافيه وشاي <span class="tag bad">ندمت</span></b><span>مع الأصدقاء</span></div><div class="la">10,500</div></li>
+ </ul>
+ <div class="day"><span>أمس · الخميس 22</span><b>140,000</b></div>
+ <ul class="list card">
+  <li><span class="ci" style="--c:#2a78d6"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z" />
+  <path d="m2 22 3-3" />
+  <path d="M7.5 13.5 10 11" />
+  <path d="M10.5 16.5 13 14" />
+  <path d="m18 3-4 4h6l-4 4" /></svg></span><div class="li"><b>مولدة <span class="tag">ثابت</span></b><span>اشتراك 10 أمبير</span></div><div class="la">90,000</div></li>
+  <li><span class="ci" style="--c:#eb6834"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.4 15.63a7.875 6 135 1 1 6.23-6.23 4.5 3.43 135 0 0-6.23 6.23" />
+  <path d="m8.29 12.71-2.6 2.6a2.5 2.5 0 1 0-1.65 4.65A2.5 2.5 0 1 0 8.7 18.3l2.59-2.59" /></svg></span><div class="li"><b>لحوم ودجاج</b><span>دجاج 2 كيلو</span></div><div class="la">14,000</div></li>
+  <li><span class="ci" style="--c:#6250d6"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.8 11.3 2 22l10.7-3.79" />
+  <path d="M4 3h.01" />
+  <path d="M22 8h.01" />
+  <path d="M15 2h.01" />
+  <path d="M22 20h.01" />
+  <path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10" />
+  <path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17" />
+  <path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7" />
+  <path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z" /></svg></span><div class="li"><b>مناسبات وأعراس</b><span>نقوط عرس ابن عمي</span></div><div class="la">36,000</div></li>
+ </ul>
+ <div class="day"><span>الأربعاء 21</span><b>9,000</b></div>
+ <ul class="list card">
+  <li><span class="ci" style="--c:#008300"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+  <path d="m8.5 8.5 7 7" /></svg></span><div class="li"><b>صيدلية</b><span></span></div><div class="la">9,000</div></li>
+ </ul>
+</div>
+ <nav class="nav"><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+  <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span>الرئيسية</span></a><a class="on"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h.01" />
+  <path d="M3 18h.01" />
+  <path d="M3 6h.01" />
+  <path d="M8 12h13" />
+  <path d="M8 18h13" />
+  <path d="M8 6h13" /></svg><span>المصاريف</span></a><a class="plus"><svg class="ic" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" />
+  <path d="M12 5v14" /></svg></a><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17" />
+  <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" />
+  <path d="m2 16 6 6" />
+  <circle cx="16" cy="9" r="2.9" />
+  <circle cx="6" cy="5" r="3" /></svg><span>السلفة والديون</span></a><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12" />
+  <line x1="4" x2="20" y1="6" y2="6" />
+  <line x1="4" x2="20" y1="18" y2="18" /></svg><span>المزيد</span></a></nav>
+ <div class="cap">المصاريف: مجمّعة حسب الأيام</div>
+</div>
+<div class="phone"><div class="screen dim"></div>
+ <div class="sheet">
+  <div class="grab"></div>
+  <div class="row"><b class="st">مصروف جديد</b><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18" />
+  <path d="m6 6 12 12" /></svg></div>
+  <div class="amount">25,000<small>د.ع</small></div>
+  <div class="hours"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" />
+  <polyline points="12 6 12 12 16 14" /></svg> = 4 ساعات و20 دقيقة عمل</div>
+  <div class="gtabs"><span class="gt" style="--c:#2a78d6"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+  <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>البيت</span><span class="gt on" style="--c:#eb6834"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+  <path d="M7 2v20" />
+  <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg>الأكل</span><span class="gt" style="--c:#1baf7a"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+  <circle cx="7" cy="17" r="2" />
+  <path d="M9 17h6" />
+  <circle cx="17" cy="17" r="2" /></svg>النقل</span><span class="gt" style="--c:#eda100"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+  <path d="M12 18h.01" /></svg>الاتصالات</span><span class="gt" style="--c:#e87ba4"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+  <circle cx="9" cy="7" r="4" />
+  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+  <path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>العائلة</span><span class="gt" style="--c:#008300"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2v2" />
+  <path d="M5 2v2" />
+  <path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1" />
+  <path d="M8 15a6 6 0 0 0 12 0v-3" />
+  <circle cx="20" cy="10" r="2" /></svg>الصحة</span><span class="gt" style="--c:#6250d6"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  <path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66" />
+  <path d="m18 15-2-2" />
+  <path d="m15 18-2-2" /></svg>الواجبات الاجتماعية</span><span class="gt" style="--c:#8a8984"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
+  <path d="M12 22V12" />
+  <path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7" />
+  <path d="m7.5 4.27 9 5.15" /></svg>أخرى</span></div>
+  <div class="cgrid"><button class="cg"><span class="ci big" style="--c:#eb6834"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 11-1 9" />
+  <path d="m19 11-4-7" />
+  <path d="M2 11h20" />
+  <path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.7-7.4" />
+  <path d="M4.5 15.5h15" />
+  <path d="m5 11 4-7" />
+  <path d="m9 11 1 9" /></svg></span><span>مواد غذائية</span></button><button class="cg on"><span class="ci big" style="--c:#eb6834"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.6 13.11 5.79-3.21c1.89-1.05 4.79 1.78 3.71 3.71l-3.22 5.81C8.8 23.16.79 15.23 4.6 13.11Z" />
+  <path d="m10.5 9.5-1-2.29C9.2 6.48 8.8 6 8 6H4.5C2.79 6 2 6.5 2 8.5a7.71 7.71 0 0 0 2 4.83" />
+  <path d="M8 6c0-1.55.24-4-2-4-2 0-2.5 2.17-2.5 4" />
+  <path d="m14.5 13.5 2.29 1c.73.3 1.21.7 1.21 1.5v3.5c0 1.71-.5 2.5-2.5 2.5a7.71 7.71 0 0 1-4.83-2" />
+  <path d="M18 16c1.55 0 4-.24 4 2 0 2-2.17 2.5-4 2.5" /></svg></span><span>خبز وصمون</span></button><button class="cg"><span class="ci big" style="--c:#eb6834"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.4 15.63a7.875 6 135 1 1 6.23-6.23 4.5 3.43 135 0 0-6.23 6.23" />
+  <path d="m8.29 12.71-2.6 2.6a2.5 2.5 0 1 0-1.65 4.65A2.5 2.5 0 1 0 8.7 18.3l2.59-2.59" /></svg></span><span>لحوم ودجاج</span></button><button class="cg"><span class="ci big" style="--c:#eb6834"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46" />
+  <path d="M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z" />
+  <path d="M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z" /></svg></span><span>خضار وفواكه</span></button><button class="cg"><span class="ci big" style="--c:#eb6834"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+  <path d="M7 2v20" />
+  <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg></span><span>مطاعم</span></button><button class="cg"><span class="ci big" style="--c:#eb6834"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v2" />
+  <path d="M14 2v2" />
+  <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" />
+  <path d="M6 2v2" /></svg></span><span>كافيه وشاي</span></button></div>
+  <div class="frow"><span class="fld"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4" />
+  <path d="M16 2v4" />
+  <rect width="18" height="18" x="3" y="4" rx="2" />
+  <path d="M3 10h18" /></svg> اليوم، 23 تشرين الأول</span><span class="fld grow"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+  <path d="m15 5 4 4" /></svg> ملاحظة</span></div>
+  <label class="rep"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" />
+  <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+  <path d="m7 22-4-4 4-4" />
+  <path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg> يتكرر كل شهر</label>
+  <button class="save">حفظ</button>
+ </div>
+ <div class="cap">إضافة مصروف: المجموعة ثم التصنيف</div>
+</div>
+<div class="phone"><div class="screen">
+ <div class="top slim"><div class="ptitle">المزيد</div></div>
+ <div class="sec">الإعدادات</div>
+ <ul class="list card">
+  <li><span class="mi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19" />
+  <path d="M9.586 5.586A2 2 0 0 0 8.172 5H3a1 1 0 0 0-1 1v5.172a2 2 0 0 0 .586 1.414L8.29 18.29a2.426 2.426 0 0 0 3.42 0l3.58-3.58a2.426 2.426 0 0 0 0-3.42z" />
+  <circle cx="6.5" cy="9.5" r=".5" fill="currentColor" /></svg></span><div class="li"><b>التصنيفات</b><span>31 تصنيفاً في 8 مجموعات</span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></li>
+  <li><span class="mi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span><div class="li"><b>الميزانية</b><span>1,200,000 د.ع شهرياً</span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></li>
+  <li><span class="mi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" />
+  <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+  <path d="m7 22-4-4 4-4" />
+  <path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg></span><div class="li"><b>المصاريف الثابتة</b><span>إيجار، مولدة، إنترنت</span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></li>
+  <li><span class="mi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+  <rect width="20" height="14" x="2" y="6" rx="2" /></svg></span><div class="li"><b>راتبي وساعات عملي</b><span></span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></li>
+  <li><span class="mi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4" />
+  <path d="M16 2v4" />
+  <rect width="18" height="18" x="3" y="4" rx="2" />
+  <path d="M3 10h18" />
+  <path d="M8 14h.01" />
+  <path d="M12 14h.01" />
+  <path d="M16 14h.01" />
+  <path d="M8 18h.01" />
+  <path d="M12 18h.01" />
+  <path d="M16 18h.01" /></svg></span><div class="li"><b>المواسم</b><span>رمضان بعد 19 يوماً</span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></li>
+ </ul>
+ <div class="sec">بياناتي</div>
+ <ul class="list card">
+  <li><span class="mi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+  <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
+  <path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg></span><div class="li"><b>حفظ نسخة احتياطية</b><span>آخر نسخة: قبل 3 أيام</span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></li>
+  <li><span class="mi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></svg></span><div class="li"><b>استرجاع من نسخة</b><span></span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></li>
+  <li><span class="mi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+  <line x1="3" x2="21" y1="9" y2="9" />
+  <line x1="3" x2="21" y1="15" y2="15" />
+  <line x1="9" x2="9" y1="9" y2="21" />
+  <line x1="15" x2="15" y1="9" y2="21" /></svg></span><div class="li"><b>تصدير إلى Excel</b><span></span></div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></li>
+ </ul>
+</div>
+ <nav class="nav"><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+  <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span>الرئيسية</span></a><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h.01" />
+  <path d="M3 18h.01" />
+  <path d="M3 6h.01" />
+  <path d="M8 12h13" />
+  <path d="M8 18h13" />
+  <path d="M8 6h13" /></svg><span>المصاريف</span></a><a class="plus"><svg class="ic" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" />
+  <path d="M12 5v14" /></svg></a><a><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17" />
+  <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" />
+  <path d="m2 16 6 6" />
+  <circle cx="16" cy="9" r="2.9" />
+  <circle cx="6" cy="5" r="3" /></svg><span>السلفة والديون</span></a><a class="on"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12" />
+  <line x1="4" x2="20" y1="6" y2="6" />
+  <line x1="4" x2="20" y1="18" y2="18" /></svg><span>المزيد</span></a></nav>
+ <div class="cap">المزيد: كل الإعدادات في مكان واحد</div>
+</div></div>
+</body></html>
