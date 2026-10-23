@@ -1,14 +1,15 @@
-// صفحة الجمعية والسُّلَف
+// صفحة السلفة والديون
+// في الكود: "jamiya" = السلفة (الادخار الجماعي الشهري)، و"loan" = الدين
 // يعتمد على الأدوات الموجودة في app.js: $ و el و save و formatMoney و toDigits و newId ...
 // البيانات نفسها (jamiyas و loans) تُحمَّل وتُحفظ في app.js مع باقي البيانات
 
 /*
-  الجمعية:
+  السلفة (jamiya):
   { id, name, amount: القسط الشهري, members: عدد المشتركين (= عدد الأشهر),
     startMonth: "YYYY-MM", myTurn: رقم شهر استلامي أو null إذا لم يُحدد بعد,
     paid: ["YYYY-MM", ...] الأشهر التي دفعت قسطها, receivedOn: تاريخ الاستلام أو null }
 
-  السلفة:
+  الدين (loan):
   { id, person, direction: "lent" (أعطيت) أو "borrowed" (أخذت), amount, date,
     dueDate: موعد الإرجاع أو "", note, payments: [{ id, amount, date }] }
 */
@@ -36,7 +37,7 @@ function shortMonth(month) {
 
 function jamiyaInfo(j) {
   const now = thisMonth();
-  const index = monthsBetween(j.startMonth, now) + 1; // رقم الشهر الحالي في الجمعية
+  const index = monthsBetween(j.startMonth, now) + 1; // رقم الشهر الحالي في السلفة
   const months = Array.from({ length: j.members }, (_, i) => shiftMonth(j.startMonth, i));
   const paid = months.filter((m) => j.paid.includes(m));
   const pastOrNow = months.filter((m) => m <= now);
@@ -152,7 +153,7 @@ function renderSocialSummary() {
   const open = loans.filter((l) => loanRemaining(l) > 0);
   const lent = open.filter((l) => l.direction === "lent").reduce((s, l) => s + loanRemaining(l), 0);
   const borrowed = open.filter((l) => l.direction === "borrowed").reduce((s, l) => s + loanRemaining(l), 0);
-  // المدّخر = ما دفعته في الجمعيات التي لم تستلم مبلغها بعد
+  // المدّخر = ما دفعته في السلف التي لم تستلم مبلغها بعد
   const saved = jamiyas.filter((j) => !j.receivedOn).reduce((s, j) => s + jamiyaInfo(j).paidTotal, 0);
   $("sum-lent").textContent = formatMoney(lent);
   $("sum-borrowed").textContent = formatMoney(borrowed);
@@ -165,9 +166,9 @@ function renderSocialReminder() {
   const due = jamiyas.filter((j) => jamiyaInfo(j).dueNow).length;
   const missed = jamiyas.reduce((s, j) => s + jamiyaInfo(j).missed, 0);
   const overdue = loans.filter(isOverdue).length;
-  if (due) parts.push(due === 1 ? "قسط جمعية لم يُدفع هذا الشهر" : `${due} أقساط جمعيات لم تُدفع هذا الشهر`);
-  if (missed) parts.push(missed === 1 ? "قسط جمعية متأخر" : `${countWord(missed, "قسط", "قسطان", "أقساط")} متأخرة`);
-  if (overdue) parts.push(overdue === 1 ? "سلفة فات موعد إرجاعها" : `${overdue} سلف فات موعد إرجاعها`);
+  if (due) parts.push(due === 1 ? "قسط سلفة لم يُدفع هذا الشهر" : `${due} أقساط سلف لم تُدفع هذا الشهر`);
+  if (missed) parts.push(missed === 1 ? "قسط سلفة متأخر" : `${countWord(missed, "قسط", "قسطان", "أقساط")} متأخرة`);
+  if (overdue) parts.push(overdue === 1 ? "دين فات موعد إرجاعه" : `${overdue} ديون فات موعد إرجاعها`);
 
   const reminder = $("social-reminder");
   reminder.hidden = parts.length === 0;
@@ -179,11 +180,11 @@ function renderJamiyas() {
   const list = $("jamiya-list");
   list.innerHTML = "";
   if (jamiyas.length === 0) {
-    list.appendChild(el("p", "empty", "لا توجد جمعيات. اضغط \"+ جمعية\" لإضافة واحدة."));
+    list.appendChild(el("p", "empty", "لا توجد سلف. اضغط \"+ سلفة\" لإضافة واحدة."));
     return;
   }
 
-  // الجمعيات المنتهية في الأسفل
+  // السلف المنتهية في الأسفل
   const sorted = [...jamiyas].sort((a, b) => jamiyaInfo(a).finished - jamiyaInfo(b).finished);
   for (const j of sorted) list.appendChild(renderJamiya(j));
 }
@@ -211,7 +212,7 @@ function renderJamiya(j) {
 
   let status;
   if (!info.started) status = `تبدأ في ${monthLabel(j.startMonth)}`;
-  else if (info.finished) status = "✅ انتهت الجمعية";
+  else if (info.finished) status = "✅ انتهت السلفة";
   else status = `الشهر ${info.index} من ${j.members}`;
   box.appendChild(el("p", "item-status", status));
 
@@ -301,13 +302,13 @@ function renderLoans() {
   const list = $("loan-list");
   list.innerHTML = "";
   if (open.length === 0) {
-    list.appendChild(el("p", "empty", loans.length ? "لا توجد سلف مفتوحة 👌" : "لا توجد سلف. اضغط \"+ سلفة\" لإضافة واحدة."));
+    list.appendChild(el("p", "empty", loans.length ? "لا توجد ديون مفتوحة 👌" : "لا توجد ديون. اضغط \"+ دين\" لإضافة واحد."));
   }
   for (const loan of open) list.appendChild(renderLoan(loan));
 
   const details = $("settled-loans");
   details.hidden = settled.length === 0;
-  $("settled-title").textContent = `✅ السلف المسددة (${settled.length})`;
+  $("settled-title").textContent = `✅ الديون المسددة (${settled.length})`;
   const settledList = $("settled-list");
   settledList.innerHTML = "";
   settled.sort((a, b) => b.date.localeCompare(a.date));
@@ -387,7 +388,7 @@ function renderLoan(loan) {
 
 // رسالة تذكير مهذبة عبر واتساب أو أي تطبيق مراسلة
 async function sendReminder(loan) {
-  const text = `مرحباً ${loan.person} 🌷\nتذكير لطيف بخصوص مبلغ ${formatMoney(loanRemaining(loan))} المتبقي من السلفة. متى ما تيسّر لك، وشكراً 🙏`;
+  const text = `مرحباً ${loan.person} 🌷\nتذكير لطيف بخصوص مبلغ ${formatMoney(loanRemaining(loan))} المتبقي من الدين. متى ما تيسّر لك، وشكراً 🙏`;
   if (navigator.share) {
     try {
       await navigator.share({ text });
@@ -399,7 +400,7 @@ async function sendReminder(loan) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
 }
 
-// ===== نموذج الجمعية =====
+// ===== نموذج السلفة =====
 
 const jamiyaDialog = $("jamiya-dialog");
 const jamiyaForm = $("jamiya-form");
@@ -437,7 +438,7 @@ function updateJamiyaPreview() {
 
 function openJamiyaForm(j) {
   editingJamiya = j;
-  $("jamiya-form-title").textContent = j ? "تعديل جمعية" : "جمعية جديدة";
+  $("jamiya-form-title").textContent = j ? "تعديل سلفة" : "سلفة جديدة";
   $("jamiya-delete").hidden = !j;
   jamiyaName.value = j ? j.name : "";
   jamiyaAmount.value = j ? j.amount.toLocaleString("en-US") : "";
@@ -470,13 +471,13 @@ jamiyaForm.addEventListener("submit", (event) => {
     myTurn: Number(jamiyaTurn.value) || null,
   };
   if (!data.name || !(data.amount > 0) || !(data.members >= 2 && data.members <= 60) || !MONTH_RE.test(data.startMonth)) {
-    alert("الرجاء إكمال بيانات الجمعية بشكل صحيح.");
+    alert("الرجاء إكمال بيانات السلفة بشكل صحيح.");
     return;
   }
 
   if (editingJamiya) {
     Object.assign(editingJamiya, data);
-    // الأشهر المدفوعة التي صارت خارج مدة الجمعية بعد التعديل تُحذف
+    // الأشهر المدفوعة التي صارت خارج مدة السلفة بعد التعديل تُحذف
     const months = new Set(jamiyaInfo(editingJamiya).months);
     editingJamiya.paid = editingJamiya.paid.filter((m) => months.has(m));
   } else {
@@ -487,7 +488,7 @@ jamiyaForm.addEventListener("submit", (event) => {
 });
 
 $("jamiya-delete").addEventListener("click", () => {
-  if (!confirm(`حذف جمعية "${editingJamiya.name}" وكل أقساطها المسجلة؟`)) return;
+  if (!confirm(`حذف سلفة "${editingJamiya.name}" وكل أقساطها المسجلة؟`)) return;
   jamiyas = jamiyas.filter((j) => j !== editingJamiya);
   save();
   jamiyaDialog.close();
@@ -495,7 +496,7 @@ $("jamiya-delete").addEventListener("click", () => {
 
 $("add-jamiya").addEventListener("click", () => openJamiyaForm(null));
 
-// ===== نموذج السلفة =====
+// ===== نموذج الدين =====
 
 const loanDialog = $("loan-dialog");
 const loanForm = $("loan-form");
@@ -516,7 +517,7 @@ function updatePersonLabel() {
 
 function openLoanForm(loan) {
   editingLoan = loan;
-  $("loan-form-title").textContent = loan ? "تعديل سلفة" : "سلفة جديدة";
+  $("loan-form-title").textContent = loan ? "تعديل دين" : "دين جديد";
   $("loan-delete").hidden = !loan;
   loanForm.querySelector(`input[name="direction"][value="${loan ? loan.direction : "lent"}"]`).checked = true;
   loanPerson.value = loan ? loan.person : "";
@@ -570,7 +571,7 @@ loanForm.addEventListener("submit", (event) => {
 });
 
 $("loan-delete").addEventListener("click", () => {
-  if (!confirm(`حذف هذه السلفة (${loanTitle(editingLoan)}) وكل دفعاتها؟`)) return;
+  if (!confirm(`حذف هذا الدين (${loanTitle(editingLoan)}) وكل دفعاته؟`)) return;
   loans = loans.filter((l) => l !== editingLoan);
   save();
   loanDialog.close();
@@ -612,7 +613,7 @@ $("payment-form").addEventListener("submit", (event) => {
   payingLoan.payments.push({ id: newId(), amount, date: paymentDate.value });
   save();
   paymentDialog.close();
-  if (amount === remaining) alert(`✅ تمت تسوية السلفة مع ${payingLoan.person} بالكامل.`);
+  if (amount === remaining) alert(`✅ تمت تسوية الدين مع ${payingLoan.person} بالكامل.`);
 });
 
 // ===== التشغيل =====

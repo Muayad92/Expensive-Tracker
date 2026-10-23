@@ -77,13 +77,13 @@ function save() {
   } catch {
     alert("تعذّر حفظ البيانات في المتصفح.");
   }
-  // تُحدَّث صفحة الجمعية والسلف عند أي تغيير في البيانات
+  // تُحدَّث صفحة السلفة والديون عند أي تغيير في البيانات
   document.dispatchEvent(new Event("data-changed"));
 }
 
 let expenses = load(STORAGE_KEY) || [];
 let categories = load(CATEGORIES_KEY) || DEFAULT_CATEGORIES.map((c) => ({ ...c }));
-// الجمعيات والسلف (طريقة عرضها وتعديلها في ملف jamiya-loans.js)
+// السلف (الادخار الجماعي) والديون (طريقة عرضها وتعديلها في ملف jamiya-loans.js)
 let jamiyas = load(JAMIYAS_KEY) || [];
 let loans = load(LOANS_KEY) || [];
 
@@ -929,7 +929,7 @@ function parseBackup(text) {
     });
   }
 
-  // النسخ القديمة (قبل المرحلة 5) ليس فيها جمعيات وسلف: null تعني "اتركها كما هي"
+  // النسخ القديمة (قبل المرحلة 5) ليس فيها سلف وديون: null تعني "اتركها كما هي"
   const cleanList = (list, sanitize) => (Array.isArray(list) ? list.map(sanitize).filter(Boolean) : null);
 
   return {
@@ -942,6 +942,15 @@ function parseBackup(text) {
   };
 }
 
+// "سلفة واحدة"، "سلفتان"، "3 سلف" · "دين واحد"، "دينان"، "3 ديون"
+function countJamiyas(n) {
+  return n === 0 ? "0 سلفة" : n === 1 ? "سلفة واحدة" : countWord(n, "سلفة", "سلفتان", "سلف");
+}
+
+function countLoans(n) {
+  return n === 0 ? "0 دين" : n === 1 ? "دين واحد" : countWord(n, "دين", "دينان", "ديون");
+}
+
 function showImportDialog(backup) {
   pendingImport = backup;
   const date = new Date(backup.exportedAt);
@@ -949,7 +958,7 @@ function showImportDialog(backup) {
   const total = backup.expenses.reduce((s, e) => s + e.amount, 0);
   let summary = `النسخة${dateText} فيها ${backup.expenses.length} مصروف بمجموع ${formatMoney(total)}، و${backup.categories.length} تصنيف.`;
   if (backup.jamiyas?.length || backup.loans?.length) {
-    summary += `\nوفيها أيضاً ${backup.jamiyas.length} جمعية و${backup.loans.length} سلفة.`;
+    summary += `\nوفيها أيضاً ${countJamiyas(backup.jamiyas.length)} و${countLoans(backup.loans.length)}.`;
   }
   if (backup.skipped) summary += `\nتم تجاهل ${backup.skipped} مصروف غير صالح.`;
   $("import-summary").textContent = summary;
@@ -978,7 +987,7 @@ function mergeImport(backup) {
     added++;
   }
 
-  // الجمعيات والسلف: يُضاف الجديد فقط، ودفعات السلفة الموجودة تُدمج
+  // السلف والديون: يُضاف الجديد فقط، ودفعات الدين الموجود تُدمج
   let addedJamiyas = 0;
   let addedLoans = 0;
   for (const j of backup.jamiyas || []) {
@@ -1032,8 +1041,8 @@ $("import-merge").addEventListener("click", () => {
   importDialog.close();
   const parts = [];
   if (added.expenses) parts.push(`${added.expenses} مصروف`);
-  if (added.jamiyas) parts.push(`${added.jamiyas} جمعية`);
-  if (added.loans) parts.push(`${added.loans} سلفة`);
+  if (added.jamiyas) parts.push(countJamiyas(added.jamiyas));
+  if (added.loans) parts.push(countLoans(added.loans));
   alert(parts.length ? `تمت إضافة ${parts.join(" و")}.` : "كل ما في النسخة موجود لديك مسبقاً.");
 });
 
@@ -1043,7 +1052,7 @@ $("import-replace").addEventListener("click", () => {
   save();
   render();
   importDialog.close();
-  alert(`تم الاسترجاع: ${expenses.length} مصروف و${jamiyas.length} جمعية و${loans.length} سلفة.`);
+  alert(`تم الاسترجاع: ${expenses.length} مصروف و${countJamiyas(jamiyas.length)} و${countLoans(loans.length)}.`);
 });
 
 importDialog.addEventListener("close", () => {
