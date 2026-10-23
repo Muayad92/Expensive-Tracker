@@ -29,6 +29,12 @@
   </header>
 
   <main class="container">
+    <!-- تذكير بالنسخ الاحتياطي -->
+    <div id="backup-reminder" class="reminder" hidden>
+      <span id="backup-reminder-text"></span>
+      <button type="button" id="backup-now" class="small-btn">احفظ الآن</button>
+    </div>
+
     <!-- مجموع كل تصنيف -->
     <section class="card">
       <div class="card-header">
@@ -46,6 +52,18 @@
       <p id="empty-message" class="empty"></p>
       <ul id="expense-list" class="expense-list"></ul>
       <p class="hint" id="edit-hint" hidden>اضغط على أي مصروف لتعديله.</p>
+    </section>
+
+    <!-- النسخ الاحتياطي والتصدير -->
+    <section class="card">
+      <h2>بياناتي</h2>
+      <p class="backup-status" id="backup-status"></p>
+      <div class="data-actions">
+        <button type="button" id="export-backup" class="action-btn">💾 حفظ نسخة احتياطية</button>
+        <button type="button" id="import-backup" class="action-btn">📂 استرجاع من نسخة احتياطية</button>
+        <button type="button" id="export-csv" class="action-btn">📊 تصدير إلى Excel</button>
+      </div>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
     </section>
   </main>
 
@@ -100,6 +118,21 @@
       <button type="submit" class="primary-btn" id="category-save">إضافة</button>
       <button type="button" class="link-btn dark" id="category-cancel" hidden>إلغاء التعديل</button>
     </form>
+  </dialog>
+
+  <!-- نافذة الاسترجاع من نسخة احتياطية -->
+  <dialog id="import-dialog" class="sheet">
+    <div class="sheet-header">
+      <h2>استرجاع من نسخة احتياطية</h2>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+    </div>
+    <p id="import-summary" class="import-summary"></p>
+    <div class="data-actions">
+      <button type="button" id="import-merge" class="primary-btn">دمج مع بياناتي الحالية</button>
+      <p class="hint">تُضاف المصاريف غير الموجودة فقط، ولا يُحذف شيء.</p>
+      <button type="button" id="import-replace" class="danger-btn">استبدال كل بياناتي بالنسخة</button>
+      <p class="hint">تُحذف بياناتك الحالية وتحلّ محلها بيانات النسخة.</p>
+    </div>
   </dialog>
 
   <script src="app.js"></script>

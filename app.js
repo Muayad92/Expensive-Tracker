@@ -74,9 +74,12 @@ function save() {
 let expenses = load(STORAGE_KEY) || [];
 let categories = load(CATEGORIES_KEY) || DEFAULT_CATEGORIES.map((c) => ({ ...c }));
 
-if (!categories.some((c) => c.id === OTHER_ID)) {
-  categories.push({ ...DEFAULT_CATEGORIES.find((c) => c.id === OTHER_ID) });
+function ensureOtherCategory() {
+  if (!categories.some((c) => c.id === OTHER_ID)) {
+    categories.push({ ...DEFAULT_CATEGORIES.find((c) => c.id === OTHER_ID) });
+  }
 }
+ensureOtherCategory();
 
 // المصاريف القديمة كانت تحفظ اسم التصنيف، والآن نحفظ رقمه حتى لا تتأثر بتغيير الاسم
 let migrated = false;
@@ -167,6 +170,8 @@ function render() {
   const currentMonth = todayString().slice(0, 7);
   const monthExpenses = expenses.filter((e) => e.date.startsWith(viewMonth));
   const query = normalize(searchInput.value);
+
+  renderBackupStatus();
 
   // الترويسة
   monthNameEl.textContent = monthLabel(viewMonth);
@@ -484,9 +489,234 @@ $("manage-categories").addEventListener("click", () => {
   categoriesDialog.showModal();
 });
 
+// ===== النسخ الاحتياطي والتصدير =====
+
+const BACKUP_DATE_KEY = "lastBackup";
+const BACKUP_APP_NAME = "masarifi";
+// نذكّر بالنسخ الاحتياطي بعد هذا العدد من الأيام، إذا كانت هناك مصاريف كافية
+const BACKUP_REMIND_DAYS = 14;
+const BACKUP_REMIND_MIN_EXPENSES = 5;
+
+const importDialog = $("import-dialog");
+const importFileInput = $("import-file");
+let pendingImport = null;
+
+function daysSinceBackup() {
+  try {
+    const last = localStorage.getItem(BACKUP_DATE_KEY);
+    if (!last) return null;
+    return Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  } catch {
+    return null;
+  }
+}
+
+function renderBackupStatus() {
+  const days = daysSinceBackup();
+  let status;
+  if (days === null) status = "لم تحفظ أي نسخة احتياطية بعد.";
+  else if (days === 0) status = "آخر نسخة احتياطية: اليوم ✅";
+  else if (days === 1) status = "آخر نسخة احتياطية: أمس";
+  else status = `آخر نسخة احتياطية: قبل ${days} يوم`;
+  $("backup-status").textContent = status;
+
+  const needsReminder =
+    expenses.length >= BACKUP_REMIND_MIN_EXPENSES && (days === null || days >= BACKUP_REMIND_DAYS);
+  $("backup-reminder").hidden = !needsReminder;
+  $("backup-reminder-text").textContent =
+    days === null ? "⚠️ لم تحفظ نسخة احتياطية من مصاريفك بعد." : `⚠️ مرّ ${days} يوم على آخر نسخة احتياطية.`;
+}
+
+// على الجوال نفتح قائمة المشاركة (حفظ في الملفات، واتساب...). على الكمبيوتر نحمّل الملف مباشرة
+async function deliverFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
+
+  if (isTouch && navigator.canShare) {
+    const file = new File([blob], filename, { type });
+    if (navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        return true;
+      } catch (err) {
+        if (err.name === "AbortError") return false;
+        // إذا فشلت المشاركة لأي سبب آخر نجرّب التحميل العادي
+      }
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+}
+
+async function exportBackup() {
+  const backup = {
+    app: BACKUP_APP_NAME,
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    categories,
+    expenses,
+  };
+  const saved = await deliverFile(
+    JSON.stringify(backup, null, 2),
+    `masarifi-backup-${todayString()}.json`,
+    "application/json"
+  );
+  if (saved) {
+    try {
+      localStorage.setItem(BACKUP_DATE_KEY, new Date().toISOString());
+    } catch {
+      // لا مشكلة: سيظهر التذكير مرة أخرى فقط
+    }
+    renderBackupStatus();
+  }
+}
+
+// ملف CSV يفتحه Excel بالعربية بشكل صحيح (العلامة ﻿ في البداية ضرورية لذلك)
+function exportCsv() {
+  if (expenses.length === 0) {
+    alert("لا توجد مصاريف لتصديرها.");
+    return;
+  }
+  const cell = (value) => `"${String(value).replace(/"/g, '""')}"`;
+  const rows = [["التاريخ", "التصنيف", "المبلغ (د.ع)", "ملاحظة"].map(cell).join(",")];
+  const sorted = [...expenses].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+  for (const e of sorted) {
+    rows.push([e.date, getCategory(e.categoryId).name, e.amount, e.note || ""].map(cell).join(","));
+  }
+  deliverFile("﻿" + rows.join("\r\n"), `masarifi-${todayString()}.csv`, "text/csv");
+}
+
+// التحقق من ملف النسخة الاحتياطية وتنظيفه قبل استخدامه
+function parseBackup(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("الملف ليس نسخة احتياطية صالحة.");
+  }
+  if (!data || data.app !== BACKUP_APP_NAME || !Array.isArray(data.expenses) || !Array.isArray(data.categories)) {
+    throw new Error("هذا الملف ليس نسخة احتياطية من تطبيق مصاريفي.");
+  }
+
+  const cats = [];
+  for (const c of data.categories) {
+    if (!c || typeof c.id !== "string" || typeof c.name !== "string" || !c.name.trim()) continue;
+    if (cats.some((x) => x.id === c.id)) continue;
+    cats.push({ id: c.id, name: c.name.trim().slice(0, 30), icon: typeof c.icon === "string" ? c.icon.slice(0, 8) : "🏷️" });
+  }
+
+  const exps = [];
+  let skipped = 0;
+  for (const e of data.expenses) {
+    const valid =
+      e && Number.isFinite(e.id) && Number.isFinite(e.amount) && e.amount > 0 &&
+      typeof e.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && typeof e.categoryId === "string";
+    if (!valid || exps.some((x) => x.id === e.id)) {
+      skipped++;
+      continue;
+    }
+    exps.push({
+      id: e.id,
+      amount: Math.round(e.amount),
+      categoryId: e.categoryId,
+      date: e.date,
+      note: typeof e.note === "string" ? e.note.slice(0, 200) : "",
+    });
+  }
+
+  return { categories: cats, expenses: exps, skipped, exportedAt: data.exportedAt };
+}
+
+function showImportDialog(backup) {
+  pendingImport = backup;
+  const date = new Date(backup.exportedAt);
+  const dateText = isNaN(date) ? "" : ` (محفوظة في ${date.toLocaleDateString("ar-IQ-u-nu-latn")})`;
+  const total = backup.expenses.reduce((s, e) => s + e.amount, 0);
+  let summary = `النسخة${dateText} فيها ${backup.expenses.length} مصروف بمجموع ${formatMoney(total)}، و${backup.categories.length} تصنيف.`;
+  if (backup.skipped) summary += `\nتم تجاهل ${backup.skipped} مصروف غير صالح.`;
+  $("import-summary").textContent = summary;
+  importDialog.showModal();
+}
+
+function mergeImport(backup) {
+  // ربط تصنيفات النسخة بتصنيفاتي: بالرقم نفسه، أو بالاسم نفسه، وإلا يُضاف تصنيف جديد
+  const idMap = {};
+  for (const cat of backup.categories) {
+    const sameId = categories.find((c) => c.id === cat.id);
+    const sameName = categories.find((c) => normalize(c.name) === normalize(cat.name));
+    if (sameId) idMap[cat.id] = sameId.id;
+    else if (sameName) idMap[cat.id] = sameName.id;
+    else {
+      categories.splice(categories.findIndex((c) => c.id === OTHER_ID), 0, { ...cat });
+      idMap[cat.id] = cat.id;
+    }
+  }
+
+  const existingIds = new Set(expenses.map((e) => e.id));
+  let added = 0;
+  for (const e of backup.expenses) {
+    if (existingIds.has(e.id)) continue;
+    expenses.push({ ...e, categoryId: idMap[e.categoryId] || OTHER_ID });
+    added++;
+  }
+  return added;
+}
+
+function replaceWithImport(backup) {
+  categories = backup.categories.map((c) => ({ ...c }));
+  ensureOtherCategory();
+  const ids = new Set(categories.map((c) => c.id));
+  expenses = backup.expenses.map((e) => ({ ...e, categoryId: ids.has(e.categoryId) ? e.categoryId : OTHER_ID }));
+}
+
+$("export-backup").addEventListener("click", exportBackup);
+$("backup-now").addEventListener("click", exportBackup);
+$("export-csv").addEventListener("click", exportCsv);
+$("import-backup").addEventListener("click", () => importFileInput.click());
+
+importFileInput.addEventListener("change", async () => {
+  const file = importFileInput.files[0];
+  importFileInput.value = "";
+  if (!file) return;
+  try {
+    showImportDialog(parseBackup(await file.text()));
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+$("import-merge").addEventListener("click", () => {
+  const added = mergeImport(pendingImport);
+  save();
+  render();
+  importDialog.close();
+  alert(added ? `تمت إضافة ${added} مصروف.` : "كل مصاريف النسخة موجودة لديك مسبقاً.");
+});
+
+$("import-replace").addEventListener("click", () => {
+  if (!confirm("سيتم حذف كل بياناتك الحالية واستبدالها بالنسخة. هل أنت متأكد؟")) return;
+  replaceWithImport(pendingImport);
+  save();
+  render();
+  importDialog.close();
+  alert(`تم الاسترجاع: ${expenses.length} مصروف.`);
+});
+
+importDialog.addEventListener("close", () => {
+  pendingImport = null;
+});
+
 // ===== إغلاق النوافذ =====
 
-for (const dialog of [expenseDialog, categoriesDialog]) {
+for (const dialog of [expenseDialog, categoriesDialog, importDialog]) {
   dialog.querySelector(".close-btn").addEventListener("click", () => dialog.close());
   // إغلاق النافذة عند الضغط خارجها (على الخلفية المعتمة فقط)
   dialog.addEventListener("click", (event) => {
