@@ -210,7 +210,7 @@ function renderSeasonAlerts() {
         card.appendChild(el("p", "", `الموسم الماضي صرفت ${formatMoney(previousSpend)}${hours}`));
         // المبلغ اليومي مقرّب لأعلى لأقرب ألف دينار
         const daily = Math.ceil(previousSpend / t.daysLeft / 1000) * 1000;
-        card.appendChild(el("p", "season-tip", `💡 لتجهّز المبلغ من الآن: وفّر ${formatMoney(daily)} يومياً`));
+        card.appendChild(iconText("p", "sparkles", `لتجهّز المبلغ من الآن: وفّر ${formatMoney(daily)} يومياً`, "season-tip"));
       } else {
         card.appendChild(
           el("p", "muted", "لا توجد مصاريف مسجلة من الموسم الماضي. سجّل مصاريف هذا الموسم لتعرف تكلفته في العام القادم.")
@@ -218,7 +218,7 @@ function renderSeasonAlerts() {
       }
     }
 
-    const dismiss = el("button", "small-btn", "تمام 👍");
+    const dismiss = iconText("button", "check", "تمام", "small-btn");
     dismiss.type = "button";
     dismiss.addEventListener("click", () => {
       // نحتفظ بآخر 50 فقط حتى لا تكبر القائمة مع السنين
@@ -240,7 +240,7 @@ function renderSeasonList() {
     .sort((a, b) => (a.t ? a.t.daysLeft : Infinity) - (b.t ? b.t.daysLeft : Infinity));
 
   if (rows.length === 0) {
-    list.appendChild(el("li", "muted", "لا توجد مواسم مفعّلة. اضغط \"⚙️ تعديل\" لإضافة موسم."));
+    list.appendChild(el("li", "muted", "لا توجد مواسم مفعّلة. اضغط \"تعديل\" لإضافة موسم."));
     return;
   }
 
@@ -261,7 +261,7 @@ function renderSeasonList() {
     if (previousSpend) details.push(`الموسم الماضي: ${formatMoney(previousSpend)}`);
     info.appendChild(el("span", "muted", details.join(" · ")));
 
-    const when = t.active ? "🔔 الآن" : t.daysLeft === 0 ? "اليوم" : `بعد ${countWord(t.daysLeft, "يوم", "يومين", "أيام")}`;
+    const when = t.active ? "الآن" : t.daysLeft === 0 ? "اليوم" : `بعد ${countWord(t.daysLeft, "يوم", "يومين", "أيام")}`;
     li.append(info, el("span", t.active ? "season-when active" : "season-when", when));
     list.appendChild(li);
   }

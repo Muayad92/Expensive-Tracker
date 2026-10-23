@@ -79,7 +79,7 @@ function isOverdue(loan) {
 }
 
 function loanTitle(loan) {
-  return loan.direction === "lent" ? `📤 أعطيت ${loan.person}` : `📥 أخذت من ${loan.person}`;
+  return loan.direction === "lent" ? `أعطيت ${loan.person}` : `أخذت من ${loan.person}`;
 }
 
 // ===== التحقق من بيانات النسخة الاحتياطية (يستخدمها app.js عند الاسترجاع) =====
@@ -172,7 +172,7 @@ function renderSocialReminder() {
 
   const reminder = $("social-reminder");
   reminder.hidden = parts.length === 0;
-  reminder.textContent = `🔔 ${parts.join(" · ")}`;
+  reminder.replaceChildren(icon("bell"), el("span", "notice-text", parts.join(" · ")), icon("chevron-left", "sm"));
   $("social-dot").hidden = parts.length === 0;
 }
 
@@ -212,7 +212,7 @@ function renderJamiya(j) {
 
   let status;
   if (!info.started) status = `تبدأ في ${monthLabel(j.startMonth)}`;
-  else if (info.finished) status = "✅ انتهت السلفة";
+  else if (info.finished) status = "انتهت السلفة";
   else status = `الشهر ${info.index} من ${j.members}`;
   box.appendChild(el("p", "item-status", status));
 
@@ -227,7 +227,9 @@ function renderJamiya(j) {
 
     const chip = el("button", classes.join(" "));
     chip.type = "button";
-    chip.append(el("span", "chip-num", j.myTurn === i + 1 ? `⭐${i + 1}` : String(i + 1)), el("span", "chip-month", shortMonth(month)));
+    const num = el("span", "chip-num", String(i + 1));
+    if (j.myTurn === i + 1) num.prepend(icon("star", "sm"));
+    chip.append(num, el("span", "chip-month", shortMonth(month)));
     chip.disabled = month > now;
     chip.setAttribute("aria-label", `${monthLabel(month)}: ${j.paid.includes(month) ? "مدفوع" : "غير مدفوع"}`);
     chip.addEventListener("click", () => toggleJamiyaPaid(j, month));
@@ -241,26 +243,26 @@ function renderJamiya(j) {
     el("p", "", `دفعت ${formatMoney(info.paidTotal)} من ${formatMoney(info.payout)} (${info.paidCount} من ${j.members} أقساط)`)
   );
   if (j.receivedOn) {
-    stats.appendChild(el("p", "good", `✅ استلمت ${formatMoney(info.payout)} في ${ltr(j.receivedOn)}`));
+    stats.appendChild(iconText("p", "check", `استلمت ${formatMoney(info.payout)} في ${ltr(j.receivedOn)}`, "good"));
   } else if (info.turnMonth) {
-    stats.appendChild(el("p", "", `⭐ دورك: الشهر ${j.myTurn} (${monthLabel(info.turnMonth)}) · ستستلم ${formatMoney(info.payout)}`));
+    stats.appendChild(iconText("p", "star", `دورك: الشهر ${j.myTurn} (${monthLabel(info.turnMonth)}) · ستستلم ${formatMoney(info.payout)}`));
   } else {
-    stats.appendChild(el("p", "muted", "⭐ دورك لم يُحدد بعد. اضغط \"تعديل\" لإضافته عند معرفته."));
+    stats.appendChild(iconText("p", "star", "دورك لم يُحدد بعد. اضغط \"تعديل\" لإضافته عند معرفته.", "muted"));
   }
   if (info.missed) {
-    stats.appendChild(el("p", "bad", `⚠️ عليك ${countWord(info.missed, "قسط متأخر", "قسطان متأخران", "أقساط متأخرة")}`));
+    stats.appendChild(iconText("p", "triangle-alert", `عليك ${countWord(info.missed, "قسط متأخر", "قسطان متأخران", "أقساط متأخرة")}`, "bad"));
   }
   box.appendChild(stats);
 
   const actions = el("div", "item-actions");
   if (info.dueNow) {
-    const payBtn = el("button", "primary-btn", `✓ دفعت قسط ${monthLabel(now)}`);
+    const payBtn = iconText("button", "check", `دفعت قسط ${monthLabel(now)}`, "primary-btn");
     payBtn.type = "button";
     payBtn.addEventListener("click", () => toggleJamiyaPaid(j, now));
     actions.appendChild(payBtn);
   }
   if (!j.receivedOn && j.myTurn && info.index >= j.myTurn) {
-    const receiveBtn = el("button", "action-btn", `💰 استلمت ${formatMoney(info.payout)}`);
+    const receiveBtn = iconText("button", "banknote", `استلمت ${formatMoney(info.payout)}`, "action-btn");
     receiveBtn.type = "button";
     receiveBtn.addEventListener("click", () => {
       j.receivedOn = todayString();
@@ -302,13 +304,13 @@ function renderLoans() {
   const list = $("loan-list");
   list.innerHTML = "";
   if (open.length === 0) {
-    list.appendChild(el("p", "empty", loans.length ? "لا توجد ديون مفتوحة 👌" : "لا توجد ديون. اضغط \"+ دين\" لإضافة واحد."));
+    list.appendChild(el("p", "empty", loans.length ? "لا توجد ديون مفتوحة" : "لا توجد ديون. اضغط \"+ دين\" لإضافة واحد."));
   }
   for (const loan of open) list.appendChild(renderLoan(loan));
 
   const details = $("settled-loans");
   details.hidden = settled.length === 0;
-  $("settled-title").textContent = `✅ الديون المسددة (${settled.length})`;
+  $("settled-title").textContent = `الديون المسددة (${settled.length})`;
   const settledList = $("settled-list");
   settledList.innerHTML = "";
   settled.sort((a, b) => b.date.localeCompare(a.date));
@@ -321,7 +323,10 @@ function renderLoan(loan) {
   const box = el("div", `loan ${loan.direction}${isOverdue(loan) ? " overdue" : ""}${remaining === 0 ? " settled" : ""}`);
 
   const head = el("div", "item-head");
-  head.append(el("strong", "", loanTitle(loan)), el("strong", "loan-remaining", remaining ? formatMoney(remaining) : "✅ تمت التسوية"));
+  const title = el("strong", "loan-title");
+  title.append(el("span", "loan-dir"), loanTitle(loan));
+  title.firstChild.appendChild(icon(loan.direction === "lent" ? "arrow-up-right" : "arrow-down-left", "sm"));
+  head.append(title, el("strong", "loan-remaining", remaining ? formatMoney(remaining) : "تمت التسوية"));
   box.appendChild(head);
 
   const sub = [`المبلغ ${formatMoney(loan.amount)}`, ltr(loan.date)];
@@ -340,10 +345,10 @@ function renderLoan(loan) {
   if (loan.dueDate && remaining > 0) {
     const days = daysUntil(loan.dueDate);
     let text;
-    if (days < 0) text = `⚠️ فات موعد الإرجاع (${ltr(loan.dueDate)}) منذ ${countWord(-days, "يوم", "يومين", "أيام")}`;
-    else if (days === 0) text = "⏰ موعد الإرجاع اليوم";
-    else text = `⏰ موعد الإرجاع: ${ltr(loan.dueDate)} (بعد ${countWord(days, "يوم", "يومين", "أيام")})`;
-    box.appendChild(el("p", days < 0 ? "bad" : "item-sub", text));
+    if (days < 0) text = `فات موعد الإرجاع (${ltr(loan.dueDate)}) منذ ${countWord(-days, "يوم", "يومين", "أيام")}`;
+    else if (days === 0) text = "موعد الإرجاع اليوم";
+    else text = `موعد الإرجاع: ${ltr(loan.dueDate)} (بعد ${countWord(days, "يوم", "يومين", "أيام")})`;
+    box.appendChild(iconText("p", days < 0 ? "triangle-alert" : "clock", text, days < 0 ? "bad due" : "item-sub due"));
   }
 
   if (loan.payments.length) {
@@ -351,7 +356,8 @@ function renderLoan(loan) {
     for (const p of [...loan.payments].sort((a, b) => a.date.localeCompare(b.date))) {
       const li = el("li");
       li.appendChild(el("span", "", `دفعة ${formatMoney(p.amount)} · ${ltr(p.date)}`));
-      const del = el("button", "icon-btn", "✕");
+      const del = el("button", "icon-btn");
+      del.appendChild(icon("x", "sm"));
       del.type = "button";
       del.setAttribute("aria-label", "حذف الدفعة");
       del.addEventListener("click", () => {
@@ -373,7 +379,7 @@ function renderLoan(loan) {
     actions.appendChild(payBtn);
   }
   if (remaining > 0 && loan.direction === "lent") {
-    const remindBtn = el("button", "small-btn", "📱 تذكير لطيف");
+    const remindBtn = iconText("button", "share-2", "تذكير لطيف", "small-btn");
     remindBtn.type = "button";
     remindBtn.addEventListener("click", () => sendReminder(loan));
     actions.appendChild(remindBtn);
@@ -613,7 +619,7 @@ $("payment-form").addEventListener("submit", (event) => {
   payingLoan.payments.push({ id: newId(), amount, date: paymentDate.value });
   save();
   paymentDialog.close();
-  if (amount === remaining) alert(`✅ تمت تسوية الدين مع ${payingLoan.person} بالكامل.`);
+  showToast(amount === remaining ? `تمت تسوية الدين مع ${payingLoan.person} بالكامل` : `سُجّلت دفعة ${formatMoney(amount)}`);
 });
 
 // ===== التشغيل =====

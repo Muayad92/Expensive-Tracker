@@ -11,6 +11,13 @@ const RECURRING_KEY = "recurring";
 
 const $ = (id) => document.getElementById(id);
 
+// عنصر فيه أيقونة صغيرة ثم نص، مثل: iconText("p", "clock", "موعد الإرجاع اليوم", "muted")
+function iconText(tag, name, text, className = "") {
+  const node = el(tag, className ? `with-icon ${className}` : "with-icon");
+  node.append(icon(name, "sm"), text);
+  return node;
+}
+
 // أيقونة من icons/sprite.svg، مثلاً icon("trash-2") أو icon("plus", "sm")
 function icon(name, size = "") {
   const NS = "http://www.w3.org/2000/svg";
@@ -117,7 +124,7 @@ for (const e of expenses) {
   if (e.categoryId) continue;
   let cat = categories.find((c) => c.name === e.category);
   if (!cat) {
-    cat = { id: newId(), name: e.category || "أخرى", icon: "🏷️" };
+    cat = { id: newId(), name: e.category || "أخرى", icon: "tag" };
     categories.splice(categories.findIndex((c) => c.id === OTHER_ID), 0, cat);
   }
   e.categoryId = cat.id;
@@ -1275,7 +1282,7 @@ function renderRegretStats(monthExpenses) {
   const ratedSum = rated.reduce((s, e) => s + e.amount, 0);
 
   if (regretSum === 0) {
-    content.appendChild(el("p", "regret-total good", "👏 لم تندم على أي مصروف قيّمته هذا الشهر"));
+    content.appendChild(el("p", "regret-total good", "لم تندم على أي مصروف قيّمته هذا الشهر"));
   } else {
     const percent = Math.round((regretSum / ratedSum) * 100);
     content.appendChild(el("p", "regret-total", `ندمت على ${formatMoney(regretSum)}`));
@@ -1344,7 +1351,7 @@ function renderBackupStatus() {
   const days = daysSinceBackup();
   let status;
   if (days === null) status = "لم تحفظ أي نسخة احتياطية بعد.";
-  else if (days === 0) status = "آخر نسخة احتياطية: اليوم ✅";
+  else if (days === 0) status = "آخر نسخة احتياطية: اليوم";
   else if (days === 1) status = "آخر نسخة احتياطية: أمس";
   else status = `آخر نسخة احتياطية: قبل ${days} يوم`;
   $("backup-status").textContent = status;

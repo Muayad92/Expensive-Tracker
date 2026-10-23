@@ -20,9 +20,9 @@ const RECURRING_MAX_CATCH_UP = 24; // لا نضيف أكثر من سنتين م�
 
 function budgetLevel(spent, limit) {
   const percent = Math.round((spent / limit) * 100);
-  if (spent > limit) return { percent, level: "over", icon: "⛔" };
-  if (percent >= BUDGET_WARN_PERCENT) return { percent, level: "warn", icon: "⚠️" };
-  return { percent, level: "ok", icon: "" };
+  if (spent > limit) return { percent, level: "over" };
+  if (percent >= BUDGET_WARN_PERCENT) return { percent, level: "warn" };
+  return { percent, level: "ok" };
 }
 
 function meter(percent, level) {
@@ -168,8 +168,8 @@ function notifyBudget(exp) {
     if (after.level === before || after.level === "ok") return;
     messages.push(
       after.level === "over"
-        ? `⛔ تجاوزت ${label} بـ ${formatMoney(spentAfter - limit)}`
-        : `⚠️ وصلت ${after.percent}% من ${label}`
+        ? `تجاوزت ${label} بـ ${formatMoney(spentAfter - limit)}`
+        : `وصلت ${after.percent}% من ${label}`
     );
   };
   check(budgets.total, monthSpent(month), "ميزانية الشهر");
@@ -190,7 +190,7 @@ function updateBudgetSum() {
   );
   const total = Number(toDigits(budgetTotalInput.value));
   let text = sum ? `مجموع ميزانيات التصنيفات: ${formatMoney(sum)}` : "";
-  if (sum && total && sum > total) text += " · ⚠️ أكبر من ميزانية الشهر كله";
+  if (sum && total && sum > total) text += " · أكبر من ميزانية الشهر كله";
   $("budget-sum").textContent = text;
 }
 
@@ -449,7 +449,7 @@ function sanitizeRecurring(r) {
 const addedOnOpen = addDueRecurring();
 if (addedOnOpen) {
   document.addEventListener("DOMContentLoaded", () =>
-    showToast(`🔁 أُضيف ${countWord(addedOnOpen, "مصروف ثابت", "مصروفان ثابتان", "مصاريف ثابتة")}`)
+    showToast(`أُضيف ${countWord(addedOnOpen, "مصروف ثابت", "مصروفان ثابتان", "مصاريف ثابتة")}`)
   );
 }
 
@@ -458,5 +458,5 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
   const added = addDueRecurring();
   render();
-  if (added) showToast(`🔁 أُضيف ${countWord(added, "مصروف ثابت", "مصروفان ثابتان", "مصاريف ثابتة")}`);
+  if (added) showToast(`أُضيف ${countWord(added, "مصروف ثابت", "مصروفان ثابتان", "مصاريف ثابتة")}`);
 });

@@ -2324,3 +2324,75 @@ select:focus {
   width: 20px;
   background: var(--primary);
 }
+
+/* ===== المرحلة و: أيقونات بدل الرموز التعبيرية ===== */
+
+.with-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+button.with-icon {
+  justify-content: center;
+}
+
+.small-btn.with-icon {
+  display: inline-flex;
+}
+
+.notice-link {
+  cursor: pointer;
+}
+
+.loan-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loan-dir {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.loan.lent .loan-dir {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.loan.borrowed .loan-dir {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.item-sub.due,
+.bad.due {
+  margin-top: 6px;
+}
+
+.chip-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.chip-num .ic {
+  width: 12px;
+  height: 12px;
+  color: var(--warn);
+}
+
+.segmented label .ic {
+  margin-inline-end: 4px;
+}
+
+/* النصوص المكتوبة على القرص لا تمنع الضغط على الشرائح */
+.pie text,
+.pie-leader {
+  pointer-events: none;
+}
