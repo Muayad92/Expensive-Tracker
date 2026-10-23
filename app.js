@@ -50,6 +50,10 @@ const categorySaveBtn = $("category-save");
 const categoryCancelBtn = $("category-cancel");
 const iconPickerEl = $("icon-picker");
 const chosenIconEl = $("chosen-icon");
+const workSummaryEl = $("work-summary");
+const setupWorkBtn = $("setup-work");
+const worthField = $("worth-field");
+const amountHoursEl = $("amount-hours");
 
 // ===== التخزين =====
 
@@ -95,6 +99,30 @@ for (const e of expenses) {
   migrated = true;
 }
 if (migrated) save();
+
+// الراتب وساعات العمل: { salary, days, hours } أو null إذا لم يُدخلها المستخدم
+const WORK_KEY = "work";
+
+function loadWork() {
+  try {
+    const w = JSON.parse(localStorage.getItem(WORK_KEY));
+    if (w && w.salary > 0 && w.days > 0 && w.hours > 0) return w;
+  } catch {
+    // نعتبرها غير موجودة
+  }
+  return null;
+}
+
+function saveWork() {
+  try {
+    if (work) localStorage.setItem(WORK_KEY, JSON.stringify(work));
+    else localStorage.removeItem(WORK_KEY);
+  } catch {
+    alert("تعذّر حفظ البيانات في المتصفح.");
+  }
+}
+
+let work = loadWork();
 
 // ===== أدوات مساعدة =====
 
@@ -174,11 +202,20 @@ function render() {
   renderBackupStatus();
 
   // الترويسة
+  const monthTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
   monthNameEl.textContent = monthLabel(viewMonth);
-  monthTotalEl.textContent = formatMoney(monthExpenses.reduce((sum, e) => sum + e.amount, 0));
+  monthTotalEl.textContent = formatMoney(monthTotal);
   thisMonthBtn.hidden = viewMonth === currentMonth;
+  workSummaryEl.hidden = !work || monthTotal === 0;
+  if (work && monthTotal > 0) {
+    const ofSalary = Math.round((monthTotal / work.salary) * 100);
+    workSummaryEl.textContent = `⏱ ${workTime(monthTotal)} · ${ofSalary}% من راتبك`;
+  }
+  setupWorkBtn.hidden = Boolean(work) || expenses.length === 0;
 
+  renderRegretAsk();
   renderCategoryTotals(monthExpenses);
+  renderRegretStats(monthExpenses);
 
   // القائمة: نتائج البحث من كل الأشهر، أو مصاريف الشهر المختار
   let shown;
@@ -218,10 +255,14 @@ function renderExpense(exp) {
   });
 
   const info = el("div", "expense-info");
+  const worthMark = exp.worth === "no" ? " 👎" : exp.worth === "yes" ? " 👍" : "";
   info.append(
-    el("div", "expense-category", `${cat.icon} ${cat.name}`),
+    el("div", "expense-category", `${cat.icon} ${cat.name}${worthMark}`),
     el("div", "expense-meta", exp.note ? `${exp.date} · ${exp.note}` : exp.date)
   );
+
+  const amount = el("div", "expense-amount", formatMoney(exp.amount));
+  if (work) amount.appendChild(el("div", "expense-hours", `⏱ ${workTime(exp.amount)}`));
 
   const btn = el("button", "delete-btn", "🗑");
   btn.type = "button";
@@ -231,7 +272,7 @@ function renderExpense(exp) {
     deleteExpense(exp.id);
   });
 
-  item.append(info, el("div", "expense-amount", formatMoney(exp.amount)), btn);
+  item.append(info, amount, btn);
   return item;
 }
 
@@ -289,20 +330,32 @@ function openForm(exp) {
   editingId = exp ? exp.id : null;
   formTitle.textContent = exp ? "تعديل مصروف" : "إضافة مصروف";
   deleteInFormBtn.hidden = !exp;
+  // التقييم يظهر عند التعديل فقط، حتى تبقى الإضافة سريعة
+  worthField.hidden = !exp;
   fillCategorySelect(exp ? exp.categoryId : categories[0].id);
 
   if (exp) {
     amountInput.value = exp.amount.toLocaleString("en-US");
     dateInput.value = exp.date;
     noteInput.value = exp.note || "";
+    const worth = exp.worth === "yes" || exp.worth === "no" ? exp.worth : "";
+    form.querySelector(`input[name="worth"][value="${worth}"]`).checked = true;
   } else {
     // عند إضافة مصروف لشهر سابق، نقترح أول يوم من ذلك الشهر
     const today = todayString();
     dateInput.value = today.startsWith(viewMonth) ? today : `${viewMonth}-01`;
   }
 
+  updateAmountHours();
   expenseDialog.showModal();
   if (!exp) amountInput.focus();
+}
+
+// "= ساعتان عمل" تحت خانة المبلغ أثناء الكتابة
+function updateAmountHours() {
+  const amount = Number(toDigits(amountInput.value));
+  amountHoursEl.hidden = !work || !(amount > 0);
+  if (!amountHoursEl.hidden) amountHoursEl.textContent = `⏱ = ${workTime(amount)}`;
 }
 
 function deleteExpense(id) {
@@ -314,9 +367,14 @@ function deleteExpense(id) {
 }
 
 // تنسيق المبلغ بفواصل الآلاف أثناء الكتابة
+function formatMoneyInput(input) {
+  const digits = toDigits(input.value).replace(/^0+/, "");
+  input.value = digits ? Number(digits).toLocaleString("en-US") : "";
+}
+
 amountInput.addEventListener("input", () => {
-  const digits = toDigits(amountInput.value).replace(/^0+/, "");
-  amountInput.value = digits ? Number(digits).toLocaleString("en-US") : "";
+  formatMoneyInput(amountInput);
+  updateAmountHours();
 });
 
 form.addEventListener("submit", (event) => {
@@ -338,6 +396,9 @@ form.addEventListener("submit", (event) => {
   if (editingId !== null) {
     const exp = expenses.find((e) => e.id === editingId);
     Object.assign(exp, data);
+    const worth = form.querySelector('input[name="worth"]:checked')?.value;
+    if (worth === "yes" || worth === "no") exp.worth = worth;
+    else if (exp.worth !== "skip") delete exp.worth;
   } else {
     expenses.push({ id: Date.now(), ...data });
   }
@@ -489,6 +550,227 @@ $("manage-categories").addEventListener("click", () => {
   categoriesDialog.showModal();
 });
 
+// ===== المبالغ بساعات العمل =====
+
+// متوسط عدد الأسابيع في الشهر = 52 أسبوعاً ÷ 12 شهراً
+const WEEKS_PER_MONTH = 52 / 12;
+
+function hourlyRate(w) {
+  return w.salary / (w.days * w.hours * WEEKS_PER_MONTH);
+}
+
+// العدد مع المعدود بالعربية: ساعة، ساعتان، 3 ساعات، 11 ساعة
+function countWord(n, one, two, few) {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  if (n <= 10) return `${n} ${few}`;
+  return `${n} ${one}`;
+}
+
+// تحويل مبلغ إلى وقت عمل: "52 دقيقة عمل"، "4 ساعات و20 دقيقة عمل"، "يوما عمل"
+function workTime(amount) {
+  const minutes = Math.round((amount / hourlyRate(work)) * 60);
+  if (minutes < 1) return "أقل من دقيقة عمل";
+  if (minutes < 60) return `${countWord(minutes, "دقيقة", "دقيقتان", "دقائق")} عمل`;
+
+  if (minutes < work.hours * 60) {
+    let h = Math.floor(minutes / 60);
+    let m = Math.round((minutes - h * 60) / 5) * 5;
+    if (m === 60) {
+      h++;
+      m = 0;
+    }
+    const hoursText = countWord(h, "ساعة", "ساعتان", "ساعات");
+    return m ? `${hoursText} و${countWord(m, "دقيقة", "دقيقتان", "دقائق")} عمل` : `${hoursText} عمل`;
+  }
+
+  // أيام العمل مقرّبة لأقرب نصف يوم
+  const days = Math.round((minutes / 60 / work.hours) * 2) / 2;
+  if (days % 1) return `${days} يوم عمل`;
+  return countWord(days, "يوم عمل", "يوما عمل", "أيام عمل");
+}
+
+const workDialog = $("work-dialog");
+const workForm = $("work-form");
+const salaryInput = $("salary");
+const workDaysInput = $("work-days");
+const workHoursInput = $("work-hours");
+
+function readWorkForm() {
+  return {
+    salary: Number(toDigits(salaryInput.value)),
+    days: Number(workDaysInput.value),
+    hours: Number(workHoursInput.value),
+  };
+}
+
+function updateHourlyPreview() {
+  const w = readWorkForm();
+  const valid = w.salary > 0 && w.days >= 1 && w.days <= 7 && w.hours > 0 && w.hours <= 24;
+  $("hourly-preview").textContent = valid ? `أجرك تقريباً: ${formatMoney(hourlyRate(w))} في الساعة` : "";
+}
+
+function openWorkDialog() {
+  salaryInput.value = work ? work.salary.toLocaleString("en-US") : "";
+  workDaysInput.value = work ? work.days : 5;
+  workHoursInput.value = work ? work.hours : 8;
+  $("work-clear").hidden = !work;
+  updateHourlyPreview();
+  workDialog.showModal();
+  if (!work) salaryInput.focus();
+}
+
+salaryInput.addEventListener("input", () => {
+  formatMoneyInput(salaryInput);
+  updateHourlyPreview();
+});
+workDaysInput.addEventListener("input", updateHourlyPreview);
+workHoursInput.addEventListener("input", updateHourlyPreview);
+
+workForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const w = readWorkForm();
+  if (!(w.salary > 0)) {
+    alert("الرجاء إدخال الراتب الشهري.");
+    return;
+  }
+  work = w;
+  saveWork();
+  render();
+  workDialog.close();
+});
+
+$("work-clear").addEventListener("click", () => {
+  if (!confirm("حذف الراتب وإيقاف عرض ساعات العمل؟")) return;
+  work = null;
+  saveWork();
+  render();
+  workDialog.close();
+});
+
+$("open-work").addEventListener("click", openWorkDialog);
+setupWorkBtn.addEventListener("click", openWorkDialog);
+
+// ===== ميزان الندم =====
+
+// نسأل عن المصروف بعد يومين من تاريخه، ولا نسأل عن مصاريف أقدم من شهر
+const REGRET_DELAY_DAYS = 2;
+const REGRET_WINDOW_DAYS = 30;
+
+function daysAgo(date) {
+  const [y, m, d] = date.split("-").map(Number);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today - new Date(y, m - 1, d)) / 86400000);
+}
+
+function relativeDay(date) {
+  const n = daysAgo(date);
+  if (n === 0) return "اليوم";
+  if (n === 1) return "أمس";
+  return `قبل ${countWord(n, "يوم", "يومين", "أيام")}`;
+}
+
+// المصاريف التي تنتظر رأي المستخدم، الأقدم أولاً
+function regretQueue() {
+  return expenses
+    .filter((e) => {
+      const age = daysAgo(e.date);
+      return !e.worth && age >= REGRET_DELAY_DAYS && age <= REGRET_WINDOW_DAYS;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+}
+
+function renderRegretAsk() {
+  const queue = regretQueue();
+  $("regret-ask").hidden = queue.length === 0;
+  if (queue.length === 0) return;
+
+  const exp = queue[0];
+  const cat = getCategory(exp.categoryId);
+  const box = $("regret-expense");
+  box.innerHTML = "";
+  box.append(
+    el("strong", "", `${cat.icon} ${cat.name} · ${formatMoney(exp.amount)}`),
+    el("span", "regret-when", exp.note ? `${relativeDay(exp.date)} · ${exp.note}` : relativeDay(exp.date))
+  );
+  $("regret-queue").textContent = queue.length > 1 ? `${queue.length} بانتظار رأيك` : "";
+}
+
+function rateFirstInQueue(worth) {
+  const exp = regretQueue()[0];
+  if (!exp) return;
+  exp.worth = worth;
+  save();
+  render();
+}
+
+for (const btn of document.querySelectorAll(".worth-btn")) {
+  btn.addEventListener("click", () => rateFirstInQueue(btn.dataset.worth));
+}
+$("regret-skip").addEventListener("click", () => rateFirstInQueue("skip"));
+
+function renderRegretStats(monthExpenses) {
+  const card = $("regret-stats");
+  const content = $("regret-content");
+  card.hidden = monthExpenses.length === 0;
+  content.innerHTML = "";
+  if (card.hidden) return;
+
+  const rated = monthExpenses.filter((e) => e.worth === "yes" || e.worth === "no");
+  if (rated.length === 0) {
+    content.appendChild(
+      el("p", "hint start", "بعد يومين من كل مصروف سأسألك: هل كان يستحق؟ وهنا ستظهر النتيجة في نهاية الشهر.")
+    );
+    return;
+  }
+
+  const regretted = rated.filter((e) => e.worth === "no");
+  const regretSum = regretted.reduce((s, e) => s + e.amount, 0);
+  const ratedSum = rated.reduce((s, e) => s + e.amount, 0);
+
+  if (regretSum === 0) {
+    content.appendChild(el("p", "regret-total good", "👏 لم تندم على أي مصروف قيّمته هذا الشهر"));
+  } else {
+    const percent = Math.round((regretSum / ratedSum) * 100);
+    content.appendChild(el("p", "regret-total", `ندمت على ${formatMoney(regretSum)}`));
+    if (work) content.appendChild(el("p", "regret-detail", `⏱ أي ${workTime(regretSum)}`));
+    content.appendChild(el("p", "regret-detail", `${percent}% من المبلغ الذي قيّمته`));
+
+    const bar = el("div", "regret-bar");
+    const fill = el("div", "regret-bar-fill");
+    fill.style.width = `${percent}%`;
+    bar.appendChild(fill);
+    content.appendChild(bar);
+
+    // أكثر التصنيفات ندماً
+    const byCategory = {};
+    for (const e of regretted) {
+      const id = getCategory(e.categoryId).id;
+      byCategory[id] = (byCategory[id] || 0) + e.amount;
+    }
+    const top = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    content.appendChild(el("h3", "", "أكثر ما ندمت عليه"));
+    const list = el("ul", "totals");
+    for (const [id, sum] of top) {
+      const cat = getCategory(id);
+      const li = el("li");
+      li.append(el("span", "", `${cat.icon} ${cat.name}`), el("strong", "", formatMoney(sum)));
+      list.appendChild(li);
+    }
+    content.appendChild(list);
+  }
+
+  const unrated = monthExpenses.length - rated.length;
+  content.appendChild(
+    el(
+      "p",
+      "hint start",
+      unrated ? `قيّمت ${rated.length} من ${monthExpenses.length} مصروف هذا الشهر.` : `قيّمت كل مصاريف هذا الشهر (${rated.length}).`
+    )
+  );
+}
+
 // ===== النسخ الاحتياطي والتصدير =====
 
 const BACKUP_DATE_KEY = "lastBackup";
@@ -579,19 +861,22 @@ async function exportBackup() {
   }
 }
 
-// ملف CSV يفتحه Excel بالعربية بشكل صحيح (العلامة ﻿ في البداية ضرورية لذلك)
+// ملف CSV يفتحه Excel بالعربية بشكل صحيح (العلامة \uFEFF في البداية ضرورية لذلك)
 function exportCsv() {
   if (expenses.length === 0) {
     alert("لا توجد مصاريف لتصديرها.");
     return;
   }
   const cell = (value) => `"${String(value).replace(/"/g, '""')}"`;
-  const rows = [["التاريخ", "التصنيف", "المبلغ (د.ع)", "ملاحظة"].map(cell).join(",")];
+  const worthText = { yes: "يستحق", no: "ندمت" };
+  const rows = [["التاريخ", "التصنيف", "المبلغ (د.ع)", "ملاحظة", "هل كان يستحق؟"].map(cell).join(",")];
   const sorted = [...expenses].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
   for (const e of sorted) {
-    rows.push([e.date, getCategory(e.categoryId).name, e.amount, e.note || ""].map(cell).join(","));
+    rows.push(
+      [e.date, getCategory(e.categoryId).name, e.amount, e.note || "", worthText[e.worth] || ""].map(cell).join(",")
+    );
   }
-  deliverFile("﻿" + rows.join("\r\n"), `masarifi-${todayString()}.csv`, "text/csv");
+  deliverFile("\uFEFF" + rows.join("\r\n"), `masarifi-${todayString()}.csv`, "text/csv");
 }
 
 // التحقق من ملف النسخة الاحتياطية وتنظيفه قبل استخدامه
@@ -629,6 +914,7 @@ function parseBackup(text) {
       categoryId: e.categoryId,
       date: e.date,
       note: typeof e.note === "string" ? e.note.slice(0, 200) : "",
+      ...(["yes", "no", "skip"].includes(e.worth) ? { worth: e.worth } : {}),
     });
   }
 
@@ -716,7 +1002,7 @@ importDialog.addEventListener("close", () => {
 
 // ===== إغلاق النوافذ =====
 
-for (const dialog of [expenseDialog, categoriesDialog, importDialog]) {
+for (const dialog of [expenseDialog, categoriesDialog, importDialog, workDialog]) {
   dialog.querySelector(".close-btn").addEventListener("click", () => dialog.close());
   // إغلاق النافذة عند الضغط خارجها (على الخلفية المعتمة فقط)
   dialog.addEventListener("click", (event) => {

@@ -504,3 +504,168 @@ select {
 .icon-btn:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* ===== المرحلة 4 ===== */
+
+/* ساعات العمل */
+.work-summary {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.expense-amount {
+  text-align: left;
+}
+
+.expense-hours,
+.amount-hours {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.amount-hours {
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+.hint.start {
+  text-align: right;
+}
+
+/* سؤال ميزان الندم */
+.regret-ask {
+  border: 2px solid #dfe6f2;
+}
+
+.badge {
+  font-size: 0.75rem;
+  background: #eef2f8;
+  color: var(--primary);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.regret-expense {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+}
+
+.regret-when {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.regret-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.worth-btn {
+  font: inherit;
+  font-size: 1rem;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+.worth-btn.yes {
+  background: #e3f4e8;
+  color: #1d6b38;
+}
+
+.worth-btn.no {
+  background: #fbe9e7;
+  color: #9b2c20;
+}
+
+.regret-ask .link-btn {
+  display: block;
+  margin: 10px auto 0;
+}
+
+/* نتيجة ميزان الندم */
+.regret-total {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #9b2c20;
+}
+
+.regret-total.good {
+  color: #1d6b38;
+  font-size: 1.05rem;
+}
+
+.regret-detail {
+  margin: 4px 0 0;
+  color: #555;
+}
+
+.regret-bar {
+  height: 10px;
+  background: #e3f4e8;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 12px 0 4px;
+}
+
+.regret-bar-fill {
+  height: 100%;
+  background: #d9534f;
+  border-radius: 999px;
+}
+
+/* اختيار التقييم في نموذج التعديل */
+.worth-field {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.worth-field legend {
+  font-size: 0.9rem;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.segmented label {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 4px;
+  border: 1px solid #ccd;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+}
+
+.segmented label:has(input:checked) {
+  border-color: var(--primary);
+  background: #eef2f8;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.card h3 {
+  margin: 16px 0 4px;
+  font-size: 0.95rem;
+  color: #555;
+}

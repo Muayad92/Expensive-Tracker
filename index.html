@@ -25,6 +25,8 @@
       <button type="button" id="next-month" class="nav-btn" aria-label="الشهر التالي">‹</button>
     </div>
     <p class="month-total" id="month-total">0 د.ع</p>
+    <p class="work-summary" id="work-summary" hidden></p>
+    <button type="button" id="setup-work" class="link-btn" hidden>⏱ اعرف كم ساعة عمل تكلّفك مصاريفك</button>
     <button type="button" id="this-month" class="link-btn" hidden>العودة إلى الشهر الحالي</button>
   </header>
 
@@ -35,6 +37,20 @@
       <button type="button" id="backup-now" class="small-btn">احفظ الآن</button>
     </div>
 
+    <!-- سؤال ميزان الندم: يظهر بعد يومين من المصروف -->
+    <section id="regret-ask" class="card regret-ask" hidden>
+      <div class="card-header">
+        <h2>هل كان يستحق؟</h2>
+        <span id="regret-queue" class="badge"></span>
+      </div>
+      <p id="regret-expense" class="regret-expense"></p>
+      <div class="regret-buttons">
+        <button type="button" class="worth-btn yes" data-worth="yes">👍 يستحق</button>
+        <button type="button" class="worth-btn no" data-worth="no">👎 ندمت</button>
+      </div>
+      <button type="button" id="regret-skip" class="link-btn dark">لا أتذكر · تخطَّ</button>
+    </section>
+
     <!-- مجموع كل تصنيف -->
     <section class="card">
       <div class="card-header">
@@ -42,6 +58,12 @@
         <button type="button" id="manage-categories" class="small-btn">⚙️ التصنيفات</button>
       </div>
       <ul id="category-totals" class="totals"></ul>
+    </section>
+
+    <!-- نتيجة ميزان الندم للشهر المختار -->
+    <section id="regret-stats" class="card" hidden>
+      <h2>⚖️ ميزان الندم</h2>
+      <div id="regret-content"></div>
     </section>
 
     <!-- قائمة المصاريف -->
@@ -62,6 +84,7 @@
         <button type="button" id="export-backup" class="action-btn">💾 حفظ نسخة احتياطية</button>
         <button type="button" id="import-backup" class="action-btn">📂 استرجاع من نسخة احتياطية</button>
         <button type="button" id="export-csv" class="action-btn">📊 تصدير إلى Excel</button>
+        <button type="button" id="open-work" class="action-btn">💼 راتبي وساعات عملي</button>
       </div>
       <input type="file" id="import-file" accept=".json,application/json" hidden>
     </section>
@@ -81,6 +104,7 @@
       <label>
         المبلغ (دينار عراقي)
         <input type="text" id="amount" inputmode="numeric" autocomplete="off" required placeholder="مثال: 25,000">
+        <span id="amount-hours" class="amount-hours" hidden></span>
       </label>
       <label>
         التصنيف
@@ -94,6 +118,14 @@
         ملاحظة
         <input type="text" id="note" maxlength="200" placeholder="اختياري">
       </label>
+      <fieldset id="worth-field" class="worth-field" hidden>
+        <legend>هل كان يستحق؟</legend>
+        <div class="segmented">
+          <label><input type="radio" name="worth" value="yes"> 👍 يستحق</label>
+          <label><input type="radio" name="worth" value="no"> 👎 ندمت</label>
+          <label><input type="radio" name="worth" value=""> لم أقيّمه</label>
+        </div>
+      </fieldset>
       <button type="submit" class="primary-btn">حفظ</button>
       <button type="button" id="delete-in-form" class="danger-btn" hidden>حذف هذا المصروف</button>
     </form>
@@ -133,6 +165,32 @@
       <button type="button" id="import-replace" class="danger-btn">استبدال كل بياناتي بالنسخة</button>
       <p class="hint">تُحذف بياناتك الحالية وتحلّ محلها بيانات النسخة.</p>
     </div>
+  </dialog>
+
+  <!-- نافذة الراتب وساعات العمل -->
+  <dialog id="work-dialog" class="sheet">
+    <form id="work-form">
+      <div class="sheet-header">
+        <h2>راتبي وساعات عملي</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      </div>
+      <p class="hint start">🔒 هذه الأرقام تبقى في جوالك فقط، ولا تُحفظ في النسخة الاحتياطية.</p>
+      <label>
+        الراتب الشهري (دينار عراقي)
+        <input type="text" id="salary" inputmode="numeric" autocomplete="off" required placeholder="مثال: 1,000,000">
+      </label>
+      <label>
+        أيام العمل في الأسبوع
+        <input type="number" id="work-days" min="1" max="7" step="1" required value="5">
+      </label>
+      <label>
+        ساعات العمل في اليوم
+        <input type="number" id="work-hours" min="1" max="24" step="0.5" required value="8">
+      </label>
+      <p id="hourly-preview" class="search-summary"></p>
+      <button type="submit" class="primary-btn">حفظ</button>
+      <button type="button" id="work-clear" class="link-btn dark" hidden>إيقاف عرض ساعات العمل وحذف الراتب</button>
+    </form>
   </dialog>
 
   <script src="app.js"></script>
