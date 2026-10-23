@@ -23,7 +23,12 @@ graduation-cap baby shirt scissors
 pill stethoscope
 party-popper flower gift hand-heart heart-handshake
 ticket cigarette package users tag
+receipt shopping-bag plane dumbbell dog book-open bus bike tv gamepad-2 heart sparkles landmark
+baby milk egg fish apple sandwich pizza ice-cream-cone beer cake gem watch glasses hammer paint-roller
+lamp plug building-2 train-front ship truck tractor graduation-cap backpack pen-line music camera
+banknote credit-card coins hand-heart moon star sun cloud umbrella dice-5 trophy
 """.split()
+NAMES = list(dict.fromkeys(NAMES))
 
 src = pathlib.Path(sys.argv[1])
 root = pathlib.Path(__file__).resolve().parent.parent

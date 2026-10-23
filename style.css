@@ -521,6 +521,12 @@ p {
   gap: 4px;
 }
 
+.notice-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .budget-alerts.over {
   background: var(--bad-soft);
   color: var(--bad);
@@ -703,7 +709,7 @@ p {
 }
 
 .pie {
-  width: min(240px, 70vw);
+  width: min(300px, 86vw);
   height: auto;
   overflow: visible;
   direction: ltr;
@@ -718,8 +724,105 @@ p {
   transition: opacity 0.15s;
 }
 
-.pie-slice.dimmed {
+.pie-slice.dimmed,
+.pie-ring.dimmed {
   opacity: 0.25;
+}
+
+.pie-ring {
+  cursor: pointer;
+}
+
+/* النسب على القرص */
+.pie-label {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  font-family: var(--font);
+}
+
+.pie-label.on-light {
+  fill: #1a1c1a;
+}
+
+.pie-out {
+  fill: var(--text-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  dominant-baseline: central;
+  font-family: var(--font);
+}
+
+.pie-leader {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.pie-center-label {
+  fill: var(--muted);
+  font-size: 11px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: var(--font);
+}
+
+.pie-center-value {
+  fill: var(--text);
+  font-size: 20px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: var(--font);
+}
+
+/* المجموعات تحت القرص */
+.legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  font-size: 13px;
+  text-align: right;
+}
+
+.legend-item.active {
+  background: var(--surface-2);
+}
+
+.legend-item.dimmed {
+  opacity: 0.45;
+}
+
+.legend-name {
+  flex: 1;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legend-item b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown-title {
+  margin-top: 14px !important;
 }
 
 .pie-caption {
@@ -840,6 +943,27 @@ p {
   background: color-mix(in srgb, var(--c, var(--primary)) 14%, transparent);
 }
 
+.cat-icon.sm {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.cat-icon.big {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+}
+
+/* عنوان المجموعة في قوائم التصنيفات */
+.category-group-title {
+  list-style: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 12px 2px 4px;
+}
+
 .expense-info {
   flex: 1;
   min-width: 0;
@@ -938,9 +1062,8 @@ p {
 
 .quick-btn {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -949,7 +1072,13 @@ p {
   text-align: right;
 }
 
-.quick-btn span {
+.quick-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.quick-text span {
   max-width: 100%;
   font-size: 13.5px;
   overflow: hidden;
@@ -1500,6 +1629,8 @@ select:focus {
 
 .category-row-name {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   font-weight: 600;
 }
 
@@ -1531,14 +1662,17 @@ select:focus {
 .icon-choice {
   aspect-ratio: 1;
   padding: 0;
-  font-size: 20px;
+  display: grid;
+  place-items: center;
   border: 2px solid transparent;
   border-radius: 10px;
   background: var(--surface);
+  color: var(--text-2);
 }
 
 .icon-choice.selected {
   border-color: var(--primary);
+  color: var(--primary);
 }
 
 .category-form-row {
@@ -1609,4 +1743,8 @@ select:focus {
   padding: 4px;
   color: #6fd4b0;
   font-weight: 700;
+}
+
+.budget-row-text .ic {
+  margin-inline-end: 2px;
 }

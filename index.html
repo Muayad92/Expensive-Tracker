@@ -79,9 +79,11 @@
         </div>
         <!-- القرص الدائري: نسبة كل تصنيف من مصاريف الشهر -->
         <div id="pie-wrap" class="pie-wrap" hidden>
-          <svg id="pie" class="pie" viewBox="-100 -100 200 200" role="img"></svg>
+          <svg id="pie" class="pie" viewBox="-150 -118 300 236" role="img"></svg>
           <p id="pie-caption" class="pie-caption"></p>
         </div>
+        <div id="group-legend" class="legend"></div>
+        <h3 id="breakdown-title" class="breakdown-title">حسب التصنيف</h3>
         <ul id="category-totals" class="totals"></ul>
       </section>
 
@@ -291,11 +293,16 @@
 
     <form id="category-form" class="category-form">
       <h3 id="category-form-title">إضافة تصنيف جديد</h3>
-      <div class="icon-picker" id="icon-picker"></div>
       <div class="category-form-row">
-        <span id="chosen-icon" class="chosen-icon">🏷️</span>
+        <span id="chosen-icon" class="chosen-icon"></span>
         <input type="text" id="category-name" maxlength="30" required placeholder="اسم التصنيف">
       </div>
+      <label>
+        المجموعة
+        <select id="category-group"></select>
+      </label>
+      <span class="hint start">الأيقونة:</span>
+      <div class="icon-picker" id="icon-picker"></div>
       <button type="submit" class="primary-btn" id="category-save">إضافة</button>
       <button type="button" class="link-btn dark" id="category-cancel" hidden>إلغاء التعديل</button>
     </form>
@@ -513,6 +520,7 @@
     <button type="button" id="toast-undo" class="toast-undo" hidden>تراجع</button>
   </div>
 
+  <script src="categories.js"></script>
   <script src="app.js"></script>
   <script src="jamiya-loans.js"></script>
   <script src="seasons.js"></script>

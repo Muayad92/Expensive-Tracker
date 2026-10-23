@@ -97,23 +97,30 @@ function renderBudgetAlerts(monthExpenses) {
       const { percent, level } = budgetLevel(spent, limit);
       const cat = getCategory(id);
       if (level === "over") anyOver = true;
-      if (level === "over") lines.push(`⛔ ${cat.icon} ${cat.name}: تجاوز ميزانيته بـ ${formatMoney(spent - limit)}`);
-      else if (level === "warn") lines.push(`⚠️ ${cat.icon} ${cat.name}: وصل ${percent}% من ميزانيته`);
+      if (level === "over") lines.push({ level, text: `${cat.name}: تجاوز ميزانيته بـ ${formatMoney(spent - limit)}` });
+      else if (level === "warn") lines.push({ level, text: `${cat.name}: وصل ${percent}% من ميزانيته` });
     }
   }
   box.hidden = lines.length === 0;
   box.classList.toggle("over", anyOver);
-  for (const line of lines) box.appendChild(el("div", "", line));
+  for (const line of lines) {
+    const row = el("div", "notice-line");
+    row.append(icon(line.level === "over" ? "octagon-alert" : "triangle-alert", "sm"), line.text);
+    box.appendChild(row);
+  }
 }
 
 // سطر الميزانية تحت التصنيف في قائمة "حسب التصنيف"
 function categoryBudgetRow(id, spent) {
   const limit = budgets.byCategory[id];
   if (!limit) return null;
-  const { percent, level, icon } = budgetLevel(spent, limit);
+  const { percent, level } = budgetLevel(spent, limit);
   const row = el("div", "budget-row");
   row.appendChild(meter(percent, level));
-  row.appendChild(el("span", `budget-row-text ${level}`, `${icon ? icon + " " : ""}${percent}% من ${formatMoney(limit)}`));
+  const text = el("span", `budget-row-text ${level}`);
+  if (level !== "ok") text.appendChild(icon(level === "over" ? "octagon-alert" : "triangle-alert", "sm"));
+  text.append(`${percent}% من ${formatMoney(limit)}`);
+  row.appendChild(text);
   return row;
 }
 
@@ -158,9 +165,16 @@ $("open-budget").addEventListener("click", () => {
   budgetTotalInput.value = budgets.total ? budgets.total.toLocaleString("en-US") : "";
   const list = $("budget-categories");
   list.innerHTML = "";
-  for (const cat of categories) {
+  let lastGroup = null;
+  for (const cat of sortCategories(categories)) {
+    if (cat.group !== lastGroup) {
+      list.appendChild(el("p", "category-group-title", getGroup(cat.group).name));
+      lastGroup = cat.group;
+    }
     const label = el("label", "budget-category");
-    label.appendChild(el("span", "", `${cat.icon} ${cat.name}`));
+    const name = el("span", "category-name");
+    name.append(catBadge(cat, "sm"), cat.name);
+    label.appendChild(name);
     const input = el("input", "budget-category-input money-input");
     input.type = "text";
     input.inputMode = "numeric";
@@ -244,9 +258,10 @@ function renderRecurringList() {
   for (const r of recurring) {
     const cat = getCategory(r.categoryId);
     const li = el("li", "category-row");
+    li.appendChild(catBadge(cat, "sm"));
     const info = el("div", "season-info");
     info.append(
-      el("strong", "", `${cat.icon} ${r.note || cat.name}`),
+      el("strong", "", r.note || cat.name),
       el("span", "muted", `${formatMoney(r.amount)} · يوم ${r.day} من كل شهر`)
     );
 
@@ -313,7 +328,9 @@ function renderQuickAdd() {
     const cat = getCategory(s.categoryId);
     const btn = el("button", "quick-btn");
     btn.type = "button";
-    btn.append(el("span", "", `${cat.icon} ${s.note || cat.name}`), el("strong", "", s.amount.toLocaleString("en-US")));
+    const text = el("span", "quick-text");
+    text.append(el("span", "", s.note || cat.name), el("strong", "money", s.amount.toLocaleString("en-US")));
+    btn.append(catBadge(cat, "sm"), text);
     btn.addEventListener("click", () => quickAdd(s));
     box.appendChild(btn);
   }
@@ -326,7 +343,7 @@ function quickAdd(s) {
   save();
   render();
   const cat = getCategory(s.categoryId);
-  showToast(`✓ أُضيف ${cat.icon} ${s.note || cat.name} ${formatMoney(s.amount)}`, () => {
+  showToast(`أُضيف ${s.note || cat.name} ${formatMoney(s.amount)}`, () => {
     expenses = expenses.filter((e) => e.id !== exp.id);
     save();
     render();

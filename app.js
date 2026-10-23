@@ -7,24 +7,7 @@ const SEASONS_KEY = "seasons";
 const BUDGETS_KEY = "budgets";
 const RECURRING_KEY = "recurring";
 
-// تصنيف "أخرى" لا يُحذف، وتنتقل إليه مصاريف أي تصنيف محذوف
-const OTHER_ID = "other";
-
-const DEFAULT_CATEGORIES = [
-  { id: "food", name: "طعام", icon: "🍽️" },
-  { id: "transport", name: "مواصلات", icon: "🚕" },
-  { id: "housing", name: "سكن", icon: "🏠" },
-  { id: "bills", name: "فواتير", icon: "🧾" },
-  { id: "health", name: "صحة", icon: "💊" },
-  { id: "fun", name: "ترفيه", icon: "🎮" },
-  { id: "shopping", name: "تسوق", icon: "🛍️" },
-  { id: OTHER_ID, name: "أخرى", icon: "📦" },
-];
-
-const ICON_CHOICES = [
-  "🍽️", "☕", "🛒", "🚕", "⛽", "🏠", "💡", "🧾", "📱", "💊", "🎓", "👶",
-  "👕", "🛍️", "🎮", "✈️", "🎁", "🕌", "🤝", "🐑", "🔧", "🚗", "💇", "📦",
-];
+// المجموعات والتصنيفات الافتراضية في ملف categories.js
 
 const $ = (id) => document.getElementById(id);
 
@@ -143,34 +126,27 @@ for (const e of expenses) {
 }
 if (migrated) save();
 
-// ===== ألوان القرص الدائري =====
-
-// 8 ألوان مختبرة لعمى الألوان (معرّفة في style.css باسم --series-1 إلى --series-8،
-// ولها درجات خاصة بالوضع الليلي). كل تصنيف يأخذ لوناً ثابتاً (colorSlot) يبقى معه دائماً،
-// حتى لا تتغير ألوان التصنيفات عند تغيّر ترتيبها أو حذف غيرها
-const CHART_SLOTS = 8;
-const CHART_REST_COLOR = "var(--series-rest)"; // رمادي لـ "باقي التصنيفات"
-
-function assignColorSlots() {
-  const used = new Set(categories.map((c) => c.colorSlot).filter((n) => Number.isInteger(n)));
-  // كل لون يُعطى لتصنيف واحد فقط (احتياطاً لو تكرر بعد استرجاع نسخة)
-  for (const cat of categories) {
-    if (!Number.isInteger(cat.colorSlot)) continue;
-    if (categories.find((c) => c.colorSlot === cat.colorSlot) !== cat) delete cat.colorSlot;
-  }
-  for (const cat of categories) {
-    if (Number.isInteger(cat.colorSlot)) continue;
-    const free = [...Array(CHART_SLOTS).keys()].findIndex((i) => !used.has(i));
-    if (free === -1) return; // نفدت الألوان: التصنيفات الباقية تظهر ضمن "باقي التصنيفات"
-    cat.colorSlot = free;
-    used.add(free);
+// نقل البيانات القديمة إلى التصنيفات العراقية ومجموعاتها (مرة واحدة)
+{
+  const state = { categories, expenses, recurring, budgets };
+  if (migrateToGroups(state)) {
+    categories = state.categories;
+    budgets = state.budgets;
+    save();
   }
 }
-assignColorSlots();
 
+// لون التصنيف هو لون مجموعته
 function categoryColor(id) {
-  const slot = getCategory(id).colorSlot;
-  return Number.isInteger(slot) ? `var(--series-${slot + 1})` : null;
+  return groupColor(getCategory(id).group);
+}
+
+// أيقونة التصنيف داخل دائرة بلون مجموعته
+function catBadge(cat, size = "") {
+  const badge = el("span", size ? `cat-icon ${size}` : "cat-icon");
+  badge.style.setProperty("--c", groupColor(cat.group));
+  badge.appendChild(icon(cat.icon || "tag", size === "sm" ? "sm" : ""));
+  return badge;
 }
 
 // الراتب وساعات العمل: { salary, days, hours } أو null إذا لم يُدخلها المستخدم
@@ -276,7 +252,7 @@ function el(tag, className, text) {
 let viewMonth = todayString().slice(0, 7);
 let editingId = null;
 let editingCategoryId = null;
-let chosenIcon = "🏷️";
+let chosenIcon = "tag";
 
 // ===== العرض =====
 
@@ -311,7 +287,7 @@ function render() {
   if (query) {
     shown = expenses.filter((e) => {
       const cat = getCategory(e.categoryId);
-      return normalize(e.note || "").includes(query) || normalize(cat.name).includes(query);
+      return [e.note || "", cat.name, getGroup(cat.group).name].some((t) => normalize(t).includes(query));
     });
     listTitleEl.textContent = "نتائج البحث";
     searchSummaryEl.hidden = false;
@@ -343,10 +319,7 @@ function renderExpense(exp) {
     if (event.key === "Enter") openForm(exp);
   });
 
-  // أيقونة التصنيف داخل دائرة بلونه
-  const badge = el("span", "cat-icon", cat.icon);
-  const color = categoryColor(cat.id);
-  if (color) badge.style.setProperty("--c", color);
+  const badge = catBadge(cat);
 
   const info = el("div", "expense-info");
   const title = el("div", "expense-category", cat.name);
@@ -373,116 +346,173 @@ function renderExpense(exp) {
 
 function renderCategoryTotals(monthExpenses) {
   const total = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const byGroup = {};
   const byCategory = {};
   for (const e of monthExpenses) {
-    const id = getCategory(e.categoryId).id;
-    byCategory[id] = (byCategory[id] || 0) + e.amount;
+    const cat = getCategory(e.categoryId);
+    byCategory[cat.id] = (byCategory[cat.id] || 0) + e.amount;
+    byGroup[cat.group] = (byGroup[cat.group] || 0) + e.amount;
   }
 
-  categoryTotalsEl.innerHTML = "";
-  const entries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
-  if (entries.length === 0) {
-    categoryTotalsEl.appendChild(el("li", "", "لا توجد مصاريف في هذا الشهر."));
-  }
-  const percents = roundedPercents(entries.map(([, sum]) => sum), total);
-  const slices = pieSlices(entries, total);
-  const restIds = new Set(slices.find((s) => s.rest)?.ids || []);
-
-  entries.forEach(([id, sum], i) => {
-    const cat = getCategory(id);
-    const li = el("li", "category-total");
-    li.dataset.slice = restIds.has(id) ? "rest" : id;
-    // مربع اللون يربط السطر بشريحته في القرص (والنص يبقى بلونه العادي)
-    const swatch = el("span", "swatch");
-    swatch.style.background = restIds.has(id) ? CHART_REST_COLOR : categoryColor(id);
-    const name = el("span", "category-name");
-    name.append(swatch, document.createTextNode(`${cat.icon} ${cat.name}`));
-    li.append(name, el("strong", "", `${formatMoney(sum)} · ${percents[i]}%`));
-    const budgetRow = categoryBudgetRow(id, sum);
-    if (budgetRow) li.appendChild(budgetRow);
-    li.addEventListener("click", () => highlightSlice(li.dataset.slice === activeSlice ? null : li.dataset.slice));
-    categoryTotalsEl.appendChild(li);
-  });
+  const groups = Object.entries(byGroup).sort((a, b) => b[1] - a[1]);
+  const percents = roundedPercents(groups.map(([, sum]) => sum), total);
+  const slices = groups.map(([id, sum], i) => ({
+    id,
+    sum,
+    percent: percents[i],
+    color: groupColor(id),
+    name: getGroup(id).name,
+  }));
+  if (activeGroup && !byGroup[activeGroup]) activeGroup = null;
 
   renderPie(slices, total);
+  renderGroupLegend(slices);
+  renderCategoryBreakdown(byCategory);
 }
 
-// ===== القرص الدائري =====
+// ===== القرص الدائري: توزيع المصاريف على المجموعات =====
 
-// 6 شرائح كحد أقصى حتى يبقى القرص مقروءاً: الأكبر بألوانها، والباقي شريحة رمادية واحدة
-const PIE_MAX_SLICES = 6;
-let activeSlice = null;
+// النسبة تُكتب داخل الشريحة إذا كانت 6% أو أكثر، وإلا خارج القرص مع خط قصير
+const PIE_INSIDE_PERCENT = 6;
+const PIE_R = 100; // نصف القطر الخارجي
+const PIE_R0 = 60; // نصف القطر الداخلي (الفراغ في الوسط للمجموع)
+// الألوان الفاتحة تُكتب عليها النسبة بلون غامق حتى تُقرأ
+const LIGHT_SERIES = new Set(["var(--series-3)", "var(--series-4)", "var(--series-5)", "var(--series-rest)"]);
+let activeGroup = null;
 
-function pieSlices(entries, total) {
-  const limit = entries.length > PIE_MAX_SLICES ? PIE_MAX_SLICES - 1 : PIE_MAX_SLICES;
-  const slices = [];
-  const rest = { id: "rest", rest: true, ids: [], sum: 0, color: CHART_REST_COLOR, label: "باقي التصنيفات" };
-  for (const [id, sum] of entries) {
-    const color = categoryColor(id);
-    if (color && slices.length < limit) {
-      const cat = getCategory(id);
-      slices.push({ id, sum, color, label: `${cat.icon} ${cat.name}` });
-    } else {
-      rest.ids.push(id);
-      rest.sum += sum;
-    }
-  }
-  if (rest.sum > 0) slices.push(rest);
-  const percents = roundedPercents(slices.map((s) => s.sum), total);
-  slices.forEach((s, i) => (s.percent = percents[i]));
-  return slices;
+function svgEl(tag, attrs, text) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
 function renderPie(slices, total) {
   const wrap = $("pie-wrap");
   const svg = $("pie");
-  // شريحة واحدة ليست قرصاً مفيداً: المجموع وحده يكفي
-  wrap.hidden = slices.length < 2;
+  wrap.hidden = slices.length === 0;
   svg.innerHTML = "";
-  activeSlice = null;
-  $("pie-caption").textContent = "اضغط على أي شريحة لمعرفة تفاصيلها";
   if (wrap.hidden) return;
 
-  const NS = "http://www.w3.org/2000/svg";
-  const r = 96;
-  let angle = -Math.PI / 2; // نبدأ من الأعلى ونمشي مع عقارب الساعة
+  const f = (n) => n.toFixed(1);
+  const outside = [];
+  // ندوّر القرص حتى تقع الشرائح الصغيرة في الجهة اليسرى، فتصطف نسبها عمودياً بخطوط قصيرة
+  const small = slices.map((s, i) => (s.percent < PIE_INSIDE_PERCENT ? i : -1)).filter((i) => i >= 0);
+  let angle = -Math.PI / 2;
+  if (small.length && slices.length > 1) {
+    const before = slices.slice(0, small[0]).reduce((s, x) => s + x.sum, 0) / total;
+    const size = small.reduce((s, i) => s + slices[i].sum, 0) / total;
+    angle = Math.PI - 2 * Math.PI * (before + size / 2);
+  }
+
   for (const slice of slices) {
     const sweep = (slice.sum / total) * Math.PI * 2;
-    const x1 = r * Math.cos(angle);
-    const y1 = r * Math.sin(angle);
-    const x2 = r * Math.cos(angle + sweep);
-    const y2 = r * Math.sin(angle + sweep);
-    const largeArc = sweep > Math.PI ? 1 : 0;
-    const path = document.createElementNS(NS, "path");
-    path.setAttribute("d", `M0 0 L${x1.toFixed(2)} ${y1.toFixed(2)} A${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`);
-    path.style.fill = slice.color;
-    path.setAttribute("class", "pie-slice");
-    path.dataset.slice = slice.id;
-    const title = document.createElementNS(NS, "title");
-    title.textContent = `${slice.label}: ${formatMoney(slice.sum)} (${slice.percent}%)`;
-    path.appendChild(title);
-    path.addEventListener("click", () => highlightSlice(activeSlice === slice.id ? null : slice.id));
-    svg.appendChild(path);
+    let shape;
+    if (slices.length === 1) {
+      // مجموعة واحدة: حلقة كاملة
+      shape = svgEl("circle", { r: (PIE_R + PIE_R0) / 2, fill: "none", "stroke-width": PIE_R - PIE_R0, class: "pie-ring" });
+      shape.style.stroke = slice.color;
+    } else {
+      const [c1, s1, c2, s2] = [Math.cos(angle), Math.sin(angle), Math.cos(angle + sweep), Math.sin(angle + sweep)];
+      const large = sweep > Math.PI ? 1 : 0;
+      shape = svgEl("path", {
+        d: `M${f(PIE_R * c1)} ${f(PIE_R * s1)} A${PIE_R} ${PIE_R} 0 ${large} 1 ${f(PIE_R * c2)} ${f(PIE_R * s2)} ` +
+          `L${f(PIE_R0 * c2)} ${f(PIE_R0 * s2)} A${PIE_R0} ${PIE_R0} 0 ${large} 0 ${f(PIE_R0 * c1)} ${f(PIE_R0 * s1)}Z`,
+        class: "pie-slice",
+      });
+      shape.style.fill = slice.color;
+    }
+    if (activeGroup && activeGroup !== slice.id) shape.classList.add("dimmed");
+    shape.appendChild(svgEl("title", {}, `${slice.name}: ${formatMoney(slice.sum)} (${slice.percent}%)`));
+    shape.addEventListener("click", () => setActiveGroup(slice.id));
+    svg.appendChild(shape);
+
+    if (slices.length > 1) {
+      const mid = angle + sweep / 2;
+      if (slice.percent >= PIE_INSIDE_PERCENT) {
+        const r = (PIE_R + PIE_R0) / 2;
+        const cls = LIGHT_SERIES.has(slice.color) ? "pie-label on-light" : "pie-label";
+        svg.appendChild(svgEl("text", { x: f(r * Math.cos(mid)), y: f(r * Math.sin(mid)), class: cls }, `${slice.percent}%`));
+      } else {
+        outside.push({ mid, percent: slice.percent });
+      }
+    }
     angle += sweep;
   }
-  svg.setAttribute("aria-label", slices.map((s) => `${s.label} ${s.percent}%`).join("، "));
-  svg.slices = slices;
+
+  // النسب الصغيرة: عمود في كل جهة، بمسافة 15 على الأقل بينها حتى لا تتداخل
+  for (const side of [1, -1]) {
+    const items = outside.filter((o) => (Math.cos(o.mid) >= 0) === (side === 1)).sort((a, b) => Math.sin(a.mid) - Math.sin(b.mid));
+    let lastY = -Infinity;
+    for (const { mid, percent } of items) {
+      const y = Math.max((PIE_R + 10) * Math.sin(mid), lastY + 15);
+      lastY = y;
+      const x = side * (PIE_R + 18);
+      svg.appendChild(svgEl("polyline", {
+        points: `${f((PIE_R + 1) * Math.cos(mid))},${f((PIE_R + 1) * Math.sin(mid))} ${f((PIE_R + 10) * Math.cos(mid))},${f((PIE_R + 10) * Math.sin(mid))} ${f(x)},${f(y)}`,
+        class: "pie-leader",
+      }));
+      svg.appendChild(svgEl("text", { x: f(x + side * 3), y: f(y), "text-anchor": side === 1 ? "start" : "end", class: "pie-out" }, `${percent}%`));
+    }
+  }
+
+  // في الوسط: مجموع الشهر، أو المجموعة المختارة
+  const active = slices.find((s) => s.id === activeGroup);
+  svg.appendChild(svgEl("text", { y: -14, class: "pie-center-label" }, active ? active.name : "مصاريف الشهر"));
+  svg.appendChild(svgEl("text", { y: 10, class: "pie-center-value money" }, (active ? active.sum : total).toLocaleString("en-US")));
+  svg.appendChild(svgEl("text", { y: 30, class: "pie-center-label" }, active ? `${active.percent}% · د.ع` : "د.ع"));
+
+  svg.setAttribute("aria-label", slices.map((s) => `${s.name} ${s.percent}%`).join("، "));
+  $("pie-caption").textContent = active ? "اضغط مرة أخرى لعرض كل المجموعات" : "اضغط على أي جزء لعرض تصنيفاته";
 }
 
-// إبراز شريحة وسطرها في القائمة، وإظهار تفاصيلها تحت القرص
-function highlightSlice(id) {
-  activeSlice = id;
-  const svg = $("pie");
-  for (const path of svg.querySelectorAll(".pie-slice")) {
-    path.classList.toggle("dimmed", id !== null && path.dataset.slice !== id);
+function setActiveGroup(id) {
+  activeGroup = activeGroup === id ? null : id;
+  render();
+}
+
+// المجموعات بألوانها ومبالغها تحت القرص
+function renderGroupLegend(slices) {
+  const legend = $("group-legend");
+  legend.innerHTML = "";
+  for (const slice of slices) {
+    const item = el("button", "legend-item");
+    item.type = "button";
+    if (activeGroup === slice.id) item.classList.add("active");
+    if (activeGroup && activeGroup !== slice.id) item.classList.add("dimmed");
+    const dot = el("span", "swatch");
+    dot.style.background = slice.color;
+    item.append(dot, el("span", "legend-name", slice.name), el("b", "money", slice.sum.toLocaleString("en-US")));
+    item.addEventListener("click", () => setActiveGroup(slice.id));
+    legend.appendChild(item);
   }
-  for (const li of categoryTotalsEl.querySelectorAll(".category-total")) {
-    li.classList.toggle("active", id !== null && li.dataset.slice === id);
+}
+
+// التصنيفات بمبالغها وميزانياتها (كلها، أو تصنيفات المجموعة المختارة فقط)
+function renderCategoryBreakdown(byCategory) {
+  categoryTotalsEl.innerHTML = "";
+  const ids = new Set([...Object.keys(byCategory), ...Object.keys(budgets.byCategory)]);
+  const rows = [...ids]
+    .map((id) => getCategory(id))
+    .filter((cat, i, arr) => arr.indexOf(cat) === i && (!activeGroup || cat.group === activeGroup))
+    .map((cat) => ({ cat, sum: byCategory[cat.id] || 0 }))
+    .filter(({ cat, sum }) => sum > 0 || budgets.byCategory[cat.id])
+    .sort((a, b) => b.sum - a.sum);
+
+  $("breakdown-title").textContent = activeGroup ? `تصنيفات ${getGroup(activeGroup).name}` : "حسب التصنيف";
+  if (rows.length === 0) {
+    categoryTotalsEl.appendChild(el("li", "muted", "لا توجد مصاريف في هذا الشهر."));
+    return;
   }
-  const slice = (svg.slices || []).find((s) => s.id === id);
-  $("pie-caption").textContent = slice
-    ? `${slice.label}: ${formatMoney(slice.sum)} · ${slice.percent}%`
-    : "اضغط على أي شريحة لمعرفة تفاصيلها";
+  for (const { cat, sum } of rows) {
+    const li = el("li", "category-total");
+    const name = el("span", "category-name");
+    name.append(catBadge(cat, "sm"), cat.name);
+    li.append(name, el("strong", "money", formatMoney(sum)));
+    const budgetRow = categoryBudgetRow(cat.id, sum);
+    if (budgetRow) li.appendChild(budgetRow);
+    categoryTotalsEl.appendChild(li);
+  }
 }
 
 // نسب مئوية صحيحة مجموعها 100% بالضبط (تُعطى الكسور المتبقية للأكبر كسراً)
@@ -502,10 +532,15 @@ function roundedPercents(values, total) {
 // قائمة التصنيفات داخل نموذج المصروف
 function fillCategorySelect(selectedId) {
   categoryInput.innerHTML = "";
-  for (const cat of categories) {
-    const option = el("option", "", `${cat.icon} ${cat.name}`);
-    option.value = cat.id;
-    categoryInput.appendChild(option);
+  for (const group of GROUPS) {
+    const optgroup = el("optgroup");
+    optgroup.label = group.name;
+    for (const cat of categories.filter((c) => c.group === group.id)) {
+      const option = el("option", "", cat.name);
+      option.value = cat.id;
+      optgroup.appendChild(option);
+    }
+    if (optgroup.childElementCount) categoryInput.appendChild(optgroup);
   }
   categoryInput.value = getCategory(selectedId)?.id || categories[0].id;
 }
@@ -634,49 +669,76 @@ searchInput.addEventListener("input", render);
 
 function renderCategoryList() {
   categoryListEl.innerHTML = "";
-  for (const cat of categories) {
-    const count = expenses.filter((e) => e.categoryId === cat.id).length;
-    const li = el("li", "category-row");
-    li.append(el("span", "category-row-name", `${cat.icon} ${cat.name}`), el("span", "category-count", `${count} مصروف`));
+  for (const group of GROUPS) {
+    const inGroup = categories.filter((c) => c.group === group.id);
+    if (inGroup.length === 0) continue;
+    categoryListEl.appendChild(el("li", "category-group-title", group.name));
+    for (const cat of inGroup) {
+      const count = expenses.filter((e) => e.categoryId === cat.id).length;
+      const li = el("li", "category-row");
+      const info = el("span", "category-row-name");
+      info.append(cat.name, el("small", "category-count", `${count} مصروف`));
+      li.append(catBadge(cat, "sm"), info);
 
-    const editBtn = el("button", "small-btn", "تعديل");
-    editBtn.type = "button";
-    editBtn.addEventListener("click", () => startEditCategory(cat));
-    li.appendChild(editBtn);
+      const editBtn = el("button", "small-btn", "تعديل");
+      editBtn.type = "button";
+      editBtn.addEventListener("click", () => startEditCategory(cat));
+      li.appendChild(editBtn);
 
-    if (cat.id !== OTHER_ID) {
-      const delBtn = el("button", "delete-btn");
-      delBtn.appendChild(icon("trash-2"));
-      delBtn.type = "button";
-      delBtn.setAttribute("aria-label", `حذف ${cat.name}`);
-      delBtn.addEventListener("click", () => deleteCategory(cat, count));
-      li.appendChild(delBtn);
-    } else {
-      li.appendChild(el("span", "delete-placeholder"));
+      if (cat.id !== OTHER_ID) {
+        const delBtn = el("button", "delete-btn");
+        delBtn.appendChild(icon("trash-2"));
+        delBtn.type = "button";
+        delBtn.setAttribute("aria-label", `حذف ${cat.name}`);
+        delBtn.addEventListener("click", () => deleteCategory(cat, count));
+        li.appendChild(delBtn);
+      } else {
+        li.appendChild(el("span", "delete-placeholder"));
+      }
+      categoryListEl.appendChild(li);
     }
-
-    categoryListEl.appendChild(li);
   }
+}
+
+const categoryGroupInput = $("category-group");
+
+function fillGroupSelect() {
+  categoryGroupInput.innerHTML = "";
+  for (const group of GROUPS) {
+    const option = el("option", "", group.name);
+    option.value = group.id;
+    categoryGroupInput.appendChild(option);
+  }
+}
+fillGroupSelect();
+
+function updateChosenIcon() {
+  chosenIconEl.replaceChildren(catBadge({ icon: chosenIcon, group: categoryGroupInput.value }, "big"));
 }
 
 function renderIconPicker() {
   iconPickerEl.innerHTML = "";
-  for (const icon of ICON_CHOICES) {
-    const btn = el("button", icon === chosenIcon ? "icon-choice selected" : "icon-choice", icon);
+  for (const name of CATEGORY_ICON_CHOICES) {
+    const btn = el("button", name === chosenIcon ? "icon-choice selected" : "icon-choice");
     btn.type = "button";
+    btn.setAttribute("aria-label", name);
+    btn.appendChild(icon(name));
     btn.addEventListener("click", () => {
-      chosenIcon = icon;
-      chosenIconEl.textContent = icon;
+      chosenIcon = name;
+      updateChosenIcon();
       renderIconPicker();
     });
     iconPickerEl.appendChild(btn);
   }
+  updateChosenIcon();
 }
+
+categoryGroupInput.addEventListener("change", updateChosenIcon);
 
 function resetCategoryForm() {
   editingCategoryId = null;
-  chosenIcon = "🏷️";
-  chosenIconEl.textContent = chosenIcon;
+  chosenIcon = "tag";
+  categoryGroupInput.value = "other";
   categoryNameInput.value = "";
   categoryFormTitle.textContent = "إضافة تصنيف جديد";
   categorySaveBtn.textContent = "إضافة";
@@ -686,8 +748,8 @@ function resetCategoryForm() {
 
 function startEditCategory(cat) {
   editingCategoryId = cat.id;
-  chosenIcon = cat.icon;
-  chosenIconEl.textContent = cat.icon;
+  chosenIcon = cat.icon || "tag";
+  categoryGroupInput.value = cat.group;
   categoryNameInput.value = cat.name;
   categoryFormTitle.textContent = `تعديل تصنيف "${cat.name}"`;
   categorySaveBtn.textContent = "حفظ التعديل";
@@ -706,6 +768,10 @@ function deleteCategory(cat, count) {
   for (const e of expenses) {
     if (e.categoryId === cat.id) e.categoryId = OTHER_ID;
   }
+  for (const r of recurring) {
+    if (r.categoryId === cat.id) r.categoryId = OTHER_ID;
+  }
+  delete budgets.byCategory[cat.id];
   categories = categories.filter((c) => c.id !== cat.id);
   if (editingCategoryId === cat.id) resetCategoryForm();
   save();
@@ -720,18 +786,14 @@ categoryForm.addEventListener("submit", (event) => {
 
   const duplicate = categories.find((c) => normalize(c.name) === normalize(name) && c.id !== editingCategoryId);
   if (duplicate) {
-    alert(`يوجد تصنيف بهذا الاسم: ${duplicate.icon} ${duplicate.name}`);
+    alert(`يوجد تصنيف بهذا الاسم: ${duplicate.name}`);
     return;
   }
 
-  if (editingCategoryId) {
-    Object.assign(getCategory(editingCategoryId), { name, icon: chosenIcon });
-  } else {
-    // التصنيف الجديد يوضع قبل "أخرى"
-    const otherIndex = categories.findIndex((c) => c.id === OTHER_ID);
-    categories.splice(otherIndex, 0, { id: newId(), name, icon: chosenIcon });
-    assignColorSlots();
-  }
+  const data = { name, icon: chosenIcon, group: categoryGroupInput.value };
+  if (editingCategoryId) Object.assign(getCategory(editingCategoryId), data);
+  else categories.push({ id: newId(), ...data });
+  categories = sortCategories(categories);
 
   save();
   resetCategoryForm();
@@ -888,7 +950,7 @@ function renderRegretAsk() {
   const box = $("regret-expense");
   box.innerHTML = "";
   box.append(
-    el("strong", "", `${cat.icon} ${cat.name} · ${formatMoney(exp.amount)}`),
+    el("strong", "", `${cat.name} · ${formatMoney(exp.amount)}`),
     el("span", "regret-when", exp.note ? `${relativeDay(exp.date)} · ${exp.note}` : relativeDay(exp.date))
   );
   $("regret-queue").textContent = queue.length > 1 ? `${queue.length} بانتظار رأيك` : "";
@@ -952,7 +1014,9 @@ function renderRegretStats(monthExpenses) {
     for (const [id, sum] of top) {
       const cat = getCategory(id);
       const li = el("li");
-      li.append(el("span", "", `${cat.icon} ${cat.name}`), el("strong", "", formatMoney(sum)));
+      const name = el("span", "category-name");
+      name.append(catBadge(cat, "sm"), cat.name);
+      li.append(name, el("strong", "", formatMoney(sum)));
       list.appendChild(li);
     }
     content.appendChild(list);
@@ -1003,7 +1067,7 @@ function renderBackupStatus() {
     expenses.length >= BACKUP_REMIND_MIN_EXPENSES && (days === null || days >= BACKUP_REMIND_DAYS);
   $("backup-reminder").hidden = !needsReminder;
   $("backup-reminder-text").textContent =
-    days === null ? "⚠️ لم تحفظ نسخة احتياطية من مصاريفك بعد." : `⚠️ مرّ ${days} يوم على آخر نسخة احتياطية.`;
+    days === null ? "لم تحفظ نسخة احتياطية من مصاريفك بعد." : `مرّ ${days} يوم على آخر نسخة احتياطية.`;
 }
 
 // على الجوال نفتح قائمة المشاركة (حفظ في الملفات، واتساب...). على الكمبيوتر نحمّل الملف مباشرة
@@ -1100,8 +1164,9 @@ function parseBackup(text) {
     cats.push({
       id: c.id,
       name: c.name.trim().slice(0, 30),
-      icon: typeof c.icon === "string" ? c.icon.slice(0, 8) : "🏷️",
-      ...(Number.isInteger(c.colorSlot) && c.colorSlot >= 0 && c.colorSlot < CHART_SLOTS ? { colorSlot: c.colorSlot } : {}),
+      // نسخة قديمة: الأيقونة رمز تعبيري والمجموعة غير موجودة، فينقلها migrateToGroups في الأسفل
+      icon: CATEGORY_ICON_CHOICES.includes(c.icon) || DEFAULT_CATEGORIES.some((d) => d.icon === c.icon) ? c.icon : "tag",
+      ...(GROUPS.some((g) => g.id === c.group) ? { group: c.group } : {}),
     });
   }
 
@@ -1129,7 +1194,7 @@ function parseBackup(text) {
   // النسخ القديمة (قبل المرحلة 5) ليس فيها سلف وديون: null تعني "اتركها كما هي"
   const cleanList = (list, sanitize) => (Array.isArray(list) ? list.map(sanitize).filter(Boolean) : null);
 
-  return {
+  const backup = {
     categories: cats,
     expenses: exps,
     jamiyas: cleanList(data.jamiyas, sanitizeJamiya),
@@ -1140,6 +1205,10 @@ function parseBackup(text) {
     skipped,
     exportedAt: data.exportedAt,
   };
+  // التصنيفات القديمة (قبل المجموعات) تُنقل إلى التصنيفات الجديدة كما حدث لبيانات الجوال
+  migrateToGroups(backup);
+  for (const c of backup.categories) c.group = c.group || "other";
+  return backup;
 }
 
 // "سلفة واحدة"، "سلفتان"، "3 سلف" · "دين واحد"، "دينان"، "3 ديون"
@@ -1174,9 +1243,7 @@ function mergeImport(backup) {
     if (sameId) idMap[cat.id] = sameId.id;
     else if (sameName) idMap[cat.id] = sameName.id;
     else {
-      // التصنيف القادم من جهاز آخر يأخذ لوناً جديداً حتى لا يأخذ لون أحد تصنيفاتي
-      const { colorSlot, ...rest } = cat;
-      categories.splice(categories.findIndex((c) => c.id === OTHER_ID), 0, rest);
+      categories.push({ ...cat });
       idMap[cat.id] = cat.id;
     }
   }
@@ -1223,7 +1290,7 @@ function mergeImport(backup) {
       if (idMap[id]) budgets.byCategory[idMap[id]] = amount;
     }
   }
-  assignColorSlots();
+  categories = sortCategories(categories);
   return { expenses: added, jamiyas: addedJamiyas, loans: addedLoans };
 }
 
@@ -1239,7 +1306,7 @@ function replaceWithImport(backup) {
   if (backup.recurring) {
     recurring = backup.recurring.map((r) => ({ ...r, categoryId: ids.has(r.categoryId) ? r.categoryId : OTHER_ID }));
   }
-  assignColorSlots();
+  categories = sortCategories(categories);
 }
 
 $("export-backup").addEventListener("click", exportBackup);
