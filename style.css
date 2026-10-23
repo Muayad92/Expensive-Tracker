@@ -1017,3 +1017,276 @@ select {
   grid-template-columns: 2fr 1fr;
   gap: 8px;
 }
+
+/* ===== المرحلة 7 ===== */
+
+.header-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* القرص الدائري */
+.pie-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pie {
+  width: min(220px, 70vw);
+  height: auto;
+  overflow: visible;
+}
+
+/* فاصل أبيض 2px بين الشرائح */
+.pie-slice {
+  stroke: #fff;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.pie-slice.dimmed {
+  opacity: 0.25;
+}
+
+.pie-caption {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: #444;
+  text-align: center;
+  min-height: 1.4em;
+}
+
+/* سطر التصنيف مع مربع لونه وميزانيته */
+.totals li.category-total {
+  flex-wrap: wrap;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.totals li.category-total.active {
+  background: #f1f4f9;
+}
+
+.category-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.budget-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.budget-row .meter {
+  flex: 1;
+  margin: 0;
+}
+
+.budget-row-text {
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.budget-row-text.warn {
+  color: #8a5300;
+  font-weight: 600;
+}
+
+.budget-row-text.over {
+  color: #9b2c20;
+  font-weight: 600;
+}
+
+/* شريط الميزانية */
+.meter {
+  height: 8px;
+  background: #e8ecf3;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.meter-fill.warn {
+  background: #e09a00;
+}
+
+.meter-fill.over {
+  background: #c0392b;
+}
+
+/* الميزانية داخل الترويسة الزرقاء */
+.budget-summary {
+  max-width: 360px;
+  margin: 12px auto 0;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: right;
+}
+
+.budget-summary .meter {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.budget-summary .meter-fill.ok {
+  background: #fff;
+}
+
+.budget-line,
+.budget-detail {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.budget-detail {
+  opacity: 0.9;
+}
+
+.budget-alerts {
+  flex-direction: column;
+  align-items: stretch;
+  background: #fff4e0;
+}
+
+/* نافذة الميزانية */
+.budget-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.budget-category {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.budget-category input {
+  width: 55%;
+}
+
+/* خيار التكرار الشهري في نموذج المصروف */
+.check-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.check-row input {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.check-row small {
+  color: var(--muted);
+}
+
+.small-btn.danger {
+  color: var(--danger);
+  background: #fbe9e7;
+}
+
+/* الإضافة السريعة */
+.quick-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.quick-btn {
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid #dde3ee;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  text-align: right;
+  min-width: 0;
+}
+
+.quick-btn span {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.quick-btn strong {
+  color: var(--primary);
+}
+
+.quick-btn:active {
+  background: #eef2f8;
+}
+
+/* الرسالة القصيرة فوق شريط التنقل */
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(150px + env(safe-area-inset-bottom));
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #222;
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  z-index: 20;
+  white-space: pre-line;
+  font-size: 0.9rem;
+}
+
+.toast span {
+  flex: 1;
+}
+
+.toast-undo {
+  font: inherit;
+  font-weight: 700;
+  background: none;
+  border: none;
+  color: #8fc1ff;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.budget-alerts.over {
+  background: #fdecea;
+  border-color: #f1b0a8;
+  color: #9b2c20;
+}

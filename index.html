@@ -28,6 +28,7 @@
     </div>
     <p class="month-total" id="month-total">0 د.ع</p>
     <p class="work-summary" id="work-summary" hidden></p>
+    <div id="budget-summary" class="budget-summary" hidden></div>
     <button type="button" id="setup-work" class="link-btn" hidden>⏱ اعرف كم ساعة عمل تكلّفك مصاريفك</button>
     <button type="button" id="this-month" class="link-btn" hidden>العودة إلى الشهر الحالي</button>
   </header>
@@ -44,6 +45,16 @@
 
     <!-- تنبيهات المواسم القادمة أو الحالية -->
     <div id="season-alerts"></div>
+
+    <!-- تنبيه التصنيفات التي اقتربت من ميزانيتها أو تجاوزتها -->
+    <div id="budget-alerts" class="reminder budget-alerts" hidden></div>
+
+    <!-- أزرار الإضافة السريعة لأكثر المصاريف تكراراً -->
+    <section id="quick-add" class="card" hidden>
+      <h2>⚡ إضافة سريعة</h2>
+      <div id="quick-buttons" class="quick-buttons"></div>
+      <p class="hint start">ضغطة واحدة تضيف المصروف بتاريخ اليوم.</p>
+    </section>
 
     <!-- سؤال ميزان الندم: يظهر بعد يومين من المصروف -->
     <section id="regret-ask" class="card regret-ask" hidden>
@@ -63,7 +74,15 @@
     <section class="card">
       <div class="card-header">
         <h2>حسب التصنيف</h2>
-        <button type="button" id="manage-categories" class="small-btn">⚙️ التصنيفات</button>
+        <div class="header-buttons">
+          <button type="button" id="open-budget" class="small-btn">🎯 الميزانية</button>
+          <button type="button" id="manage-categories" class="small-btn">⚙️ التصنيفات</button>
+        </div>
+      </div>
+      <!-- القرص الدائري: نسبة كل تصنيف من مصاريف الشهر -->
+      <div id="pie-wrap" class="pie-wrap" hidden>
+        <svg id="pie" class="pie" viewBox="-100 -100 200 200" role="img"></svg>
+        <p id="pie-caption" class="pie-caption"></p>
       </div>
       <ul id="category-totals" class="totals"></ul>
     </section>
@@ -103,6 +122,7 @@
         <button type="button" id="import-backup" class="action-btn">📂 استرجاع من نسخة احتياطية</button>
         <button type="button" id="export-csv" class="action-btn">📊 تصدير إلى Excel</button>
         <button type="button" id="open-work" class="action-btn">💼 راتبي وساعات عملي</button>
+        <button type="button" id="open-recurring" class="action-btn">🔁 المصاريف الثابتة</button>
       </div>
       <input type="file" id="import-file" accept=".json,application/json" hidden>
     </section>
@@ -188,6 +208,10 @@
       <label>
         ملاحظة
         <input type="text" id="note" maxlength="200" placeholder="اختياري">
+      </label>
+      <label id="recurring-row" class="check-row">
+        <input type="checkbox" id="recurring">
+        <span>🔁 يتكرر كل شهر في اليوم نفسه <small>(مثل الإيجار والاشتراكات)</small></span>
       </label>
       <fieldset id="worth-field" class="worth-field" hidden>
         <legend>هل كان يستحق؟</legend>
@@ -401,8 +425,43 @@
     </form>
   </dialog>
 
+  <!-- نافذة الميزانية -->
+  <dialog id="budget-dialog" class="sheet">
+    <form id="budget-form">
+      <div class="sheet-header">
+        <h2>🎯 الميزانية الشهرية</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+      </div>
+      <label>
+        ميزانية الشهر كله (دينار عراقي)
+        <input type="text" id="budget-total" class="money-input" inputmode="numeric" autocomplete="off" placeholder="اتركها فارغة إذا لا تريدها">
+      </label>
+      <h3>ميزانية لكل تصنيف (اختياري)</h3>
+      <div id="budget-categories" class="budget-categories"></div>
+      <p id="budget-sum" class="hint start"></p>
+      <button type="submit" class="primary-btn">حفظ</button>
+    </form>
+  </dialog>
+
+  <!-- نافذة المصاريف الثابتة -->
+  <dialog id="recurring-dialog" class="sheet">
+    <div class="sheet-header">
+      <h2>🔁 المصاريف الثابتة</h2>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+    </div>
+    <p class="hint start">تُضاف وحدها كل شهر في يومها. لإضافة مصروف ثابت: اضغط + واختر "يتكرر كل شهر".</p>
+    <ul id="recurring-list" class="category-list"></ul>
+  </dialog>
+
+  <!-- رسالة قصيرة أسفل الشاشة (مع زر تراجع) -->
+  <div id="toast" class="toast" hidden>
+    <span id="toast-text"></span>
+    <button type="button" id="toast-undo" class="toast-undo" hidden>تراجع</button>
+  </div>
+
   <script src="app.js"></script>
   <script src="jamiya-loans.js"></script>
   <script src="seasons.js"></script>
+  <script src="planning.js"></script>
 </body>
 </html>

@@ -4,6 +4,8 @@ const CATEGORIES_KEY = "categories";
 const JAMIYAS_KEY = "jamiyas";
 const LOANS_KEY = "loans";
 const SEASONS_KEY = "seasons";
+const BUDGETS_KEY = "budgets";
+const RECURRING_KEY = "recurring";
 
 // تصنيف "أخرى" لا يُحذف، وتنتقل إليه مصاريف أي تصنيف محذوف
 const OTHER_ID = "other";
@@ -76,6 +78,8 @@ function save() {
     localStorage.setItem(JAMIYAS_KEY, JSON.stringify(jamiyas));
     localStorage.setItem(LOANS_KEY, JSON.stringify(loans));
     if (seasons) localStorage.setItem(SEASONS_KEY, JSON.stringify(seasons));
+    localStorage.setItem(BUDGETS_KEY, JSON.stringify(budgets));
+    localStorage.setItem(RECURRING_KEY, JSON.stringify(recurring));
   } catch {
     alert("تعذّر حفظ البيانات في المتصفح.");
   }
@@ -90,6 +94,20 @@ let jamiyas = load(JAMIYAS_KEY) || [];
 let loans = load(LOANS_KEY) || [];
 // المواسم (في ملف seasons.js). null = لم تُحفظ بعد، فتُستخدم المواسم الافتراضية
 let seasons = load(SEASONS_KEY);
+// الميزانية والمصاريف الثابتة (طريقة عرضها وتعديلها في ملف planning.js)
+let budgets = loadBudgets();
+let recurring = load(RECURRING_KEY) || [];
+
+// الميزانية: { total: مبلغ أو null, byCategory: { رقم التصنيف: مبلغ } }
+function loadBudgets() {
+  try {
+    const b = JSON.parse(localStorage.getItem(BUDGETS_KEY));
+    if (b && typeof b === "object") return { total: b.total > 0 ? b.total : null, byCategory: b.byCategory || {} };
+  } catch {
+    // نعتبرها غير موجودة
+  }
+  return { total: null, byCategory: {} };
+}
 
 function ensureOtherCategory() {
   if (!categories.some((c) => c.id === OTHER_ID)) {
@@ -112,6 +130,35 @@ for (const e of expenses) {
   migrated = true;
 }
 if (migrated) save();
+
+// ===== ألوان القرص الدائري =====
+
+// 8 ألوان مختبرة لعمى الألوان. كل تصنيف يأخذ لوناً ثابتاً (colorSlot) يبقى معه دائماً،
+// حتى لا تتغير ألوان التصنيفات عند تغيّر ترتيبها أو حذف غيرها
+const CHART_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
+const CHART_REST_COLOR = "#a3a29c"; // رمادي لـ "باقي التصنيفات"
+
+function assignColorSlots() {
+  const used = new Set(categories.map((c) => c.colorSlot).filter((n) => Number.isInteger(n)));
+  // كل لون يُعطى لتصنيف واحد فقط (احتياطاً لو تكرر بعد استرجاع نسخة)
+  for (const cat of categories) {
+    if (!Number.isInteger(cat.colorSlot)) continue;
+    if (categories.find((c) => c.colorSlot === cat.colorSlot) !== cat) delete cat.colorSlot;
+  }
+  for (const cat of categories) {
+    if (Number.isInteger(cat.colorSlot)) continue;
+    const free = CHART_COLORS.findIndex((_, i) => !used.has(i));
+    if (free === -1) return; // نفدت الألوان: التصنيفات الباقية تظهر ضمن "باقي التصنيفات"
+    cat.colorSlot = free;
+    used.add(free);
+  }
+}
+assignColorSlots();
+
+function categoryColor(id) {
+  const slot = getCategory(id).colorSlot;
+  return Number.isInteger(slot) ? CHART_COLORS[slot] : null;
+}
 
 // الراتب وساعات العمل: { salary, days, hours } أو null إذا لم يُدخلها المستخدم
 const WORK_KEY = "work";
@@ -141,6 +188,10 @@ let work = loadWork();
 
 function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function nextExpenseId() {
+  return Math.max(Date.now(), ...expenses.map((e) => e.id + 1));
 }
 
 function getCategory(id) {
@@ -226,6 +277,8 @@ function render() {
   }
   setupWorkBtn.hidden = Boolean(work) || expenses.length === 0;
 
+  renderBudgetSummary(monthExpenses);
+  renderQuickAdd();
   renderRegretAsk();
   renderCategoryTotals(monthExpenses);
   renderRegretStats(monthExpenses);
@@ -268,7 +321,7 @@ function renderExpense(exp) {
   });
 
   const info = el("div", "expense-info");
-  const worthMark = exp.worth === "no" ? " 👎" : exp.worth === "yes" ? " 👍" : "";
+  const worthMark = (exp.worth === "no" ? " 👎" : exp.worth === "yes" ? " 👍" : "") + (exp.recurringId ? " 🔁" : "");
   info.append(
     el("div", "expense-category", `${cat.icon} ${cat.name}${worthMark}`),
     el("div", "expense-meta", exp.note ? `${exp.date} · ${exp.note}` : exp.date)
@@ -303,12 +356,104 @@ function renderCategoryTotals(monthExpenses) {
     categoryTotalsEl.appendChild(el("li", "", "لا توجد مصاريف في هذا الشهر."));
   }
   const percents = roundedPercents(entries.map(([, sum]) => sum), total);
+  const slices = pieSlices(entries, total);
+  const restIds = new Set(slices.find((s) => s.rest)?.ids || []);
+
   entries.forEach(([id, sum], i) => {
     const cat = getCategory(id);
-    const li = el("li");
-    li.append(el("span", "", `${cat.icon} ${cat.name}`), el("strong", "", `${formatMoney(sum)} · ${percents[i]}%`));
+    const li = el("li", "category-total");
+    li.dataset.slice = restIds.has(id) ? "rest" : id;
+    // مربع اللون يربط السطر بشريحته في القرص (والنص يبقى بلونه العادي)
+    const swatch = el("span", "swatch");
+    swatch.style.background = restIds.has(id) ? CHART_REST_COLOR : categoryColor(id);
+    const name = el("span", "category-name");
+    name.append(swatch, document.createTextNode(`${cat.icon} ${cat.name}`));
+    li.append(name, el("strong", "", `${formatMoney(sum)} · ${percents[i]}%`));
+    const budgetRow = categoryBudgetRow(id, sum);
+    if (budgetRow) li.appendChild(budgetRow);
+    li.addEventListener("click", () => highlightSlice(li.dataset.slice === activeSlice ? null : li.dataset.slice));
     categoryTotalsEl.appendChild(li);
   });
+
+  renderPie(slices, total);
+}
+
+// ===== القرص الدائري =====
+
+// 6 شرائح كحد أقصى حتى يبقى القرص مقروءاً: الأكبر بألوانها، والباقي شريحة رمادية واحدة
+const PIE_MAX_SLICES = 6;
+let activeSlice = null;
+
+function pieSlices(entries, total) {
+  const limit = entries.length > PIE_MAX_SLICES ? PIE_MAX_SLICES - 1 : PIE_MAX_SLICES;
+  const slices = [];
+  const rest = { id: "rest", rest: true, ids: [], sum: 0, color: CHART_REST_COLOR, label: "باقي التصنيفات" };
+  for (const [id, sum] of entries) {
+    const color = categoryColor(id);
+    if (color && slices.length < limit) {
+      const cat = getCategory(id);
+      slices.push({ id, sum, color, label: `${cat.icon} ${cat.name}` });
+    } else {
+      rest.ids.push(id);
+      rest.sum += sum;
+    }
+  }
+  if (rest.sum > 0) slices.push(rest);
+  const percents = roundedPercents(slices.map((s) => s.sum), total);
+  slices.forEach((s, i) => (s.percent = percents[i]));
+  return slices;
+}
+
+function renderPie(slices, total) {
+  const wrap = $("pie-wrap");
+  const svg = $("pie");
+  // شريحة واحدة ليست قرصاً مفيداً: المجموع وحده يكفي
+  wrap.hidden = slices.length < 2;
+  svg.innerHTML = "";
+  activeSlice = null;
+  $("pie-caption").textContent = "اضغط على أي شريحة لمعرفة تفاصيلها";
+  if (wrap.hidden) return;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const r = 96;
+  let angle = -Math.PI / 2; // نبدأ من الأعلى ونمشي مع عقارب الساعة
+  for (const slice of slices) {
+    const sweep = (slice.sum / total) * Math.PI * 2;
+    const x1 = r * Math.cos(angle);
+    const y1 = r * Math.sin(angle);
+    const x2 = r * Math.cos(angle + sweep);
+    const y2 = r * Math.sin(angle + sweep);
+    const largeArc = sweep > Math.PI ? 1 : 0;
+    const path = document.createElementNS(NS, "path");
+    path.setAttribute("d", `M0 0 L${x1.toFixed(2)} ${y1.toFixed(2)} A${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`);
+    path.setAttribute("fill", slice.color);
+    path.setAttribute("class", "pie-slice");
+    path.dataset.slice = slice.id;
+    const title = document.createElementNS(NS, "title");
+    title.textContent = `${slice.label}: ${formatMoney(slice.sum)} (${slice.percent}%)`;
+    path.appendChild(title);
+    path.addEventListener("click", () => highlightSlice(activeSlice === slice.id ? null : slice.id));
+    svg.appendChild(path);
+    angle += sweep;
+  }
+  svg.setAttribute("aria-label", slices.map((s) => `${s.label} ${s.percent}%`).join("، "));
+  svg.slices = slices;
+}
+
+// إبراز شريحة وسطرها في القائمة، وإظهار تفاصيلها تحت القرص
+function highlightSlice(id) {
+  activeSlice = id;
+  const svg = $("pie");
+  for (const path of svg.querySelectorAll(".pie-slice")) {
+    path.classList.toggle("dimmed", id !== null && path.dataset.slice !== id);
+  }
+  for (const li of categoryTotalsEl.querySelectorAll(".category-total")) {
+    li.classList.toggle("active", id !== null && li.dataset.slice === id);
+  }
+  const slice = (svg.slices || []).find((s) => s.id === id);
+  $("pie-caption").textContent = slice
+    ? `${slice.label}: ${formatMoney(slice.sum)} · ${slice.percent}%`
+    : "اضغط على أي شريحة لمعرفة تفاصيلها";
 }
 
 // نسب مئوية صحيحة مجموعها 100% بالضبط (تُعطى الكسور المتبقية للأكبر كسراً)
@@ -345,6 +490,8 @@ function openForm(exp) {
   deleteInFormBtn.hidden = !exp;
   // التقييم يظهر عند التعديل فقط، حتى تبقى الإضافة سريعة
   worthField.hidden = !exp;
+  // التكرار الشهري يُختار عند الإضافة فقط
+  $("recurring-row").hidden = Boolean(exp);
   fillCategorySelect(exp ? exp.categoryId : categories[0].id);
 
   if (exp) {
@@ -413,7 +560,9 @@ form.addEventListener("submit", (event) => {
     if (worth === "yes" || worth === "no") exp.worth = worth;
     else if (exp.worth !== "skip") delete exp.worth;
   } else {
-    expenses.push({ id: Date.now(), ...data });
+    const exp = { id: nextExpenseId(), ...data };
+    if ($("recurring").checked) exp.recurringId = createRecurring(data);
+    expenses.push(exp);
   }
 
   // الانتقال إلى شهر المصروف حتى يراه المستخدم
@@ -421,6 +570,7 @@ form.addEventListener("submit", (event) => {
   save();
   render();
   expenseDialog.close();
+  if (editingId === null) notifyBudget(data);
 });
 
 deleteInFormBtn.addEventListener("click", () => {
@@ -547,6 +697,7 @@ categoryForm.addEventListener("submit", (event) => {
     // التصنيف الجديد يوضع قبل "أخرى"
     const otherIndex = categories.findIndex((c) => c.id === OTHER_ID);
     categories.splice(otherIndex, 0, { id: newId(), name, icon: chosenIcon });
+    assignColorSlots();
   }
 
   save();
@@ -689,7 +840,7 @@ function regretQueue() {
   return expenses
     .filter((e) => {
       const age = daysAgo(e.date);
-      return !e.worth && age >= REGRET_DELAY_DAYS && age <= REGRET_WINDOW_DAYS;
+      return !e.worth && !e.recurringId && age >= REGRET_DELAY_DAYS && age <= REGRET_WINDOW_DAYS;
     })
     .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
 }
@@ -854,13 +1005,15 @@ async function deliverFile(content, filename, type) {
 async function exportBackup() {
   const backup = {
     app: BACKUP_APP_NAME,
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     categories,
     expenses,
     jamiyas,
     loans,
     seasons,
+    budgets,
+    recurring,
   };
   const saved = await deliverFile(
     JSON.stringify(backup, null, 2),
@@ -911,7 +1064,12 @@ function parseBackup(text) {
   for (const c of data.categories) {
     if (!c || typeof c.id !== "string" || typeof c.name !== "string" || !c.name.trim()) continue;
     if (cats.some((x) => x.id === c.id)) continue;
-    cats.push({ id: c.id, name: c.name.trim().slice(0, 30), icon: typeof c.icon === "string" ? c.icon.slice(0, 8) : "🏷️" });
+    cats.push({
+      id: c.id,
+      name: c.name.trim().slice(0, 30),
+      icon: typeof c.icon === "string" ? c.icon.slice(0, 8) : "🏷️",
+      ...(Number.isInteger(c.colorSlot) && c.colorSlot >= 0 && c.colorSlot < CHART_COLORS.length ? { colorSlot: c.colorSlot } : {}),
+    });
   }
 
   const exps = [];
@@ -931,6 +1089,7 @@ function parseBackup(text) {
       date: e.date,
       note: typeof e.note === "string" ? e.note.slice(0, 200) : "",
       ...(["yes", "no", "skip"].includes(e.worth) ? { worth: e.worth } : {}),
+      ...(typeof e.recurringId === "string" ? { recurringId: e.recurringId } : {}),
     });
   }
 
@@ -943,6 +1102,8 @@ function parseBackup(text) {
     jamiyas: cleanList(data.jamiyas, sanitizeJamiya),
     loans: cleanList(data.loans, sanitizeLoan),
     seasons: cleanList(data.seasons, sanitizeSeason),
+    budgets: sanitizeBudgets(data.budgets),
+    recurring: cleanList(data.recurring, sanitizeRecurring),
     skipped,
     exportedAt: data.exportedAt,
   };
@@ -980,7 +1141,9 @@ function mergeImport(backup) {
     if (sameId) idMap[cat.id] = sameId.id;
     else if (sameName) idMap[cat.id] = sameName.id;
     else {
-      categories.splice(categories.findIndex((c) => c.id === OTHER_ID), 0, { ...cat });
+      // التصنيف القادم من جهاز آخر يأخذ لوناً جديداً حتى لا يأخذ لون أحد تصنيفاتي
+      const { colorSlot, ...rest } = cat;
+      categories.splice(categories.findIndex((c) => c.id === OTHER_ID), 0, rest);
       idMap[cat.id] = cat.id;
     }
   }
@@ -1016,6 +1179,18 @@ function mergeImport(backup) {
   for (const season of backup.seasons || []) {
     if (!seasons.some((x) => x.id === season.id)) seasons.push(season);
   }
+  // المصاريف الثابتة: تُضاف غير الموجودة، والميزانية تؤخذ من النسخة فقط إذا لم تضع ميزانية بعد
+  for (const r of backup.recurring || []) {
+    if (!recurring.some((x) => x.id === r.id)) recurring.push({ ...r, categoryId: idMap[r.categoryId] || OTHER_ID });
+  }
+  const hasBudget = budgets.total || Object.keys(budgets.byCategory).length;
+  if (backup.budgets && !hasBudget) {
+    budgets = { total: backup.budgets.total, byCategory: {} };
+    for (const [id, amount] of Object.entries(backup.budgets.byCategory)) {
+      if (idMap[id]) budgets.byCategory[idMap[id]] = amount;
+    }
+  }
+  assignColorSlots();
   return { expenses: added, jamiyas: addedJamiyas, loans: addedLoans };
 }
 
@@ -1027,6 +1202,11 @@ function replaceWithImport(backup) {
   if (backup.jamiyas) jamiyas = backup.jamiyas;
   if (backup.loans) loans = backup.loans;
   if (backup.seasons) seasons = backup.seasons;
+  if (backup.budgets) budgets = backup.budgets;
+  if (backup.recurring) {
+    recurring = backup.recurring.map((r) => ({ ...r, categoryId: ids.has(r.categoryId) ? r.categoryId : OTHER_ID }));
+  }
+  assignColorSlots();
 }
 
 $("export-backup").addEventListener("click", exportBackup);
@@ -1087,7 +1267,8 @@ function setupDialog(dialog) {
 
 [expenseDialog, categoriesDialog, importDialog, workDialog].forEach(setupDialog);
 
-render();
+// أول عرض بعد تحميل كل الملفات، لأن العرض يستخدم دوال من planning.js
+document.addEventListener("DOMContentLoaded", render);
 
 // تشغيل التطبيق بدون إنترنت (يعمل فقط عند فتحه من رابط https)
 if ("serviceWorker" in navigator && window.isSecureContext) {
