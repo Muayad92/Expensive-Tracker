@@ -2,84 +2,76 @@
   box-sizing: border-box;
 }
 
+:root {
+  --primary: #2b4c7e;
+  --primary-dark: #1e3a63;
+  --danger: #c0392b;
+  --bg: #f3f5f9;
+  --text: #222;
+  --muted: #777;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
-  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-  background: #f3f5f9;
-  color: #222;
+  font-family: -apple-system, "Segoe UI", Tahoma, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  /* مساحة لزر الإضافة العائم أسفل الشاشة */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+/* الترويسة: اسم التطبيق ومجموع الشهر */
+.app-header {
+  background: var(--primary);
+  color: #fff;
+  text-align: center;
+  padding: calc(16px + env(safe-area-inset-top)) 16px 24px;
+  border-radius: 0 0 20px 20px;
+}
+
+.app-header h1 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.month-label {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.month-total {
+  margin: 4px 0 0;
+  font-size: 2rem;
+  font-weight: 700;
 }
 
 .container {
-  max-width: 760px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 16px;
 }
 
-h1 {
-  text-align: center;
-  color: #2b4c7e;
-}
-
 .card {
   background: #fff;
-  border-radius: 10px;
-  padding: 16px 20px;
+  border-radius: 14px;
+  padding: 16px;
   margin-bottom: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
-h2 {
-  margin-top: 0;
-  font-size: 1.2rem;
-}
-
-h3 {
+.card h2 {
+  margin: 0 0 12px;
   font-size: 1rem;
-  color: #555;
+  color: #444;
 }
 
-form {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.9rem;
-}
-
-.full {
-  grid-column: 1 / -1;
-}
-
-input,
-select,
-button {
-  font: inherit;
-  padding: 8px 10px;
-  border: 1px solid #ccd;
-  border-radius: 6px;
-}
-
-button {
-  background: #2b4c7e;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #1e3a63;
-}
-
-.month-total strong {
-  font-size: 1.4rem;
-  color: #2b4c7e;
-}
-
+/* مجموع كل تصنيف */
 .totals {
   list-style: none;
   padding: 0;
@@ -89,49 +81,175 @@ button:hover {
 .totals li {
   display: flex;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: 8px 0;
   border-bottom: 1px dashed #ddd;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
+.totals li:last-child {
+  border-bottom: none;
 }
 
-th,
-td {
-  text-align: right;
-  padding: 8px 6px;
+/* قائمة المصاريف */
+.expense-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.expense-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
   border-bottom: 1px solid #eee;
 }
 
-th {
-  color: #555;
+.expense-item:last-child {
+  border-bottom: none;
+}
+
+.expense-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.expense-category {
   font-weight: 600;
 }
 
-.delete-btn {
-  background: #c0392b;
-  padding: 4px 10px;
+.expense-meta {
   font-size: 0.85rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.delete-btn:hover {
-  background: #962d22;
+.expense-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 1.1rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.delete-btn:active {
+  background: #fbe9e7;
 }
 
 .empty {
-  color: #888;
+  color: var(--muted);
   text-align: center;
+  line-height: 1.8;
 }
 
-@media (max-width: 600px) {
-  form {
-    grid-template-columns: 1fr;
-  }
+/* زر الإضافة العائم */
+.fab {
+  position: fixed;
+  left: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
 
-  th:nth-child(4),
-  td:nth-child(4) {
-    display: none;
-  }
+.fab:active {
+  background: var(--primary-dark);
+}
+
+/* نافذة الإضافة تظهر من أسفل الشاشة */
+.sheet {
+  width: 100%;
+  max-width: 600px;
+  margin: auto auto 0;
+  border: none;
+  border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+.sheet::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.sheet form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sheet-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+/* 16px يمنع آيفون من تكبير الصفحة عند الكتابة */
+input,
+select {
+  font: inherit;
+  font-size: 16px;
+  padding: 12px;
+  border: 1px solid #ccd;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  width: 100%;
+}
+
+#amount {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.primary-btn {
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+}
+
+.primary-btn:active {
+  background: var(--primary-dark);
 }

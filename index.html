@@ -2,76 +2,79 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>متتبع المصاريف</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>مصاريفي</title>
+  <meta name="theme-color" content="#2b4c7e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="مصاريفي">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header class="app-header">
+    <h1>مصاريفي</h1>
+    <p class="month-label">مجموع <span id="month-name"></span></p>
+    <p class="month-total" id="month-total">0 د.ع</p>
+  </header>
+
   <main class="container">
-    <h1>متتبع المصاريف</h1>
-
-    <!-- نموذج إضافة مصروف -->
+    <!-- مجموع كل تصنيف -->
     <section class="card">
-      <h2>إضافة مصروف</h2>
-      <form id="expense-form">
-        <label>
-          المبلغ
-          <input type="number" id="amount" min="0.01" step="0.01" required placeholder="مثال: 25.50">
-        </label>
-        <label>
-          التصنيف
-          <select id="category" required>
-            <option value="طعام">طعام</option>
-            <option value="مواصلات">مواصلات</option>
-            <option value="سكن">سكن</option>
-            <option value="فواتير">فواتير</option>
-            <option value="صحة">صحة</option>
-            <option value="ترفيه">ترفيه</option>
-            <option value="تسوق">تسوق</option>
-            <option value="أخرى">أخرى</option>
-          </select>
-        </label>
-        <label>
-          التاريخ
-          <input type="date" id="date" required>
-        </label>
-        <label class="full">
-          ملاحظة
-          <input type="text" id="note" maxlength="200" placeholder="اختياري">
-        </label>
-        <button type="submit" class="full">إضافة</button>
-      </form>
-    </section>
-
-    <!-- الملخص -->
-    <section class="card">
-      <h2>الملخص</h2>
-      <p class="month-total">
-        مجموع <span id="month-name"></span>:
-        <strong id="month-total">0.00</strong>
-      </p>
-      <h3>مجموع كل تصنيف (الشهر الحالي)</h3>
+      <h2>حسب التصنيف (الشهر الحالي)</h2>
       <ul id="category-totals" class="totals"></ul>
     </section>
 
     <!-- قائمة المصاريف -->
     <section class="card">
-      <h2>قائمة المصاريف</h2>
-      <p id="empty-message" class="empty">لا توجد مصاريف بعد.</p>
-      <table id="expense-table">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>التصنيف</th>
-            <th>المبلغ</th>
-            <th>ملاحظة</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="expense-list"></tbody>
-      </table>
+      <h2>المصاريف</h2>
+      <p id="empty-message" class="empty">لا توجد مصاريف بعد.<br>اضغط زر <strong>+</strong> لإضافة أول مصروف.</p>
+      <ul id="expense-list" class="expense-list"></ul>
     </section>
   </main>
+
+  <!-- زر الإضافة العائم -->
+  <button type="button" id="add-btn" class="fab" aria-label="إضافة مصروف">+</button>
+
+  <!-- نافذة إضافة مصروف -->
+  <dialog id="expense-dialog" class="sheet">
+    <form id="expense-form">
+      <div class="sheet-header">
+        <h2>إضافة مصروف</h2>
+        <button type="button" id="close-btn" class="icon-btn" aria-label="إغلاق">✕</button>
+      </div>
+
+      <label>
+        المبلغ (دينار عراقي)
+        <input type="text" id="amount" inputmode="numeric" autocomplete="off" required placeholder="مثال: 25,000">
+      </label>
+      <label>
+        التصنيف
+        <select id="category" required>
+          <option value="طعام">طعام</option>
+          <option value="مواصلات">مواصلات</option>
+          <option value="سكن">سكن</option>
+          <option value="فواتير">فواتير</option>
+          <option value="صحة">صحة</option>
+          <option value="ترفيه">ترفيه</option>
+          <option value="تسوق">تسوق</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+      </label>
+      <label>
+        التاريخ
+        <input type="date" id="date" required>
+      </label>
+      <label>
+        ملاحظة
+        <input type="text" id="note" maxlength="200" placeholder="اختياري">
+      </label>
+      <button type="submit" class="primary-btn">حفظ</button>
+    </form>
+  </dialog>
 
   <script src="app.js"></script>
 </body>

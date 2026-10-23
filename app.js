@@ -2,12 +2,14 @@
 const STORAGE_KEY = "expenses";
 
 const form = document.getElementById("expense-form");
+const dialog = document.getElementById("expense-dialog");
+const addBtn = document.getElementById("add-btn");
+const closeBtn = document.getElementById("close-btn");
 const amountInput = document.getElementById("amount");
 const categoryInput = document.getElementById("category");
 const dateInput = document.getElementById("date");
 const noteInput = document.getElementById("note");
 const listEl = document.getElementById("expense-list");
-const tableEl = document.getElementById("expense-table");
 const emptyEl = document.getElementById("empty-message");
 const monthNameEl = document.getElementById("month-name");
 const monthTotalEl = document.getElementById("month-total");
@@ -42,9 +44,24 @@ function todayString() {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+// الدينار العراقي بدون كسور وبفواصل الآلاف: 25,000 د.ع
 function formatMoney(value) {
-  return value.toLocaleString("ar", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${Math.round(value).toLocaleString("en-US")} د.ع`;
 }
+
+// تحويل الأرقام العربية (٠-٩) والفارسية (۰-۹) إلى إنجليزية وحذف ما ليس رقماً
+function toDigits(text) {
+  return text
+    .replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 0x0660)
+    .replace(/[۰-۹]/g, (d) => d.charCodeAt(0) - 0x06f0)
+    .replace(/\D/g, "");
+}
+
+// تنسيق المبلغ بفواصل الآلاف أثناء الكتابة
+amountInput.addEventListener("input", () => {
+  const digits = toDigits(amountInput.value).replace(/^0+/, "");
+  amountInput.value = digits ? Number(digits).toLocaleString("en-US") : "";
+});
 
 // عرض كل شيء على الصفحة
 function render() {
@@ -52,34 +69,41 @@ function render() {
   const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
   listEl.innerHTML = "";
   for (const exp of sorted) {
-    const row = document.createElement("tr");
+    const item = document.createElement("li");
+    item.className = "expense-item";
 
-    for (const text of [exp.date, exp.category, formatMoney(exp.amount), exp.note]) {
-      const cell = document.createElement("td");
-      cell.textContent = text;
-      row.appendChild(cell);
-    }
+    const info = document.createElement("div");
+    info.className = "expense-info";
+    const category = document.createElement("div");
+    category.className = "expense-category";
+    category.textContent = exp.category;
+    const meta = document.createElement("div");
+    meta.className = "expense-meta";
+    meta.textContent = exp.note ? `${exp.date} · ${exp.note}` : exp.date;
+    info.append(category, meta);
 
-    const actionCell = document.createElement("td");
+    const amount = document.createElement("div");
+    amount.className = "expense-amount";
+    amount.textContent = formatMoney(exp.amount);
+
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "delete-btn";
-    btn.textContent = "حذف";
+    btn.textContent = "🗑";
+    btn.setAttribute("aria-label", "حذف");
     btn.addEventListener("click", () => deleteExpense(exp.id));
-    actionCell.appendChild(btn);
-    row.appendChild(actionCell);
 
-    listEl.appendChild(row);
+    item.append(info, amount, btn);
+    listEl.appendChild(item);
   }
 
-  const hasItems = expenses.length > 0;
-  tableEl.hidden = !hasItems;
-  emptyEl.hidden = hasItems;
+  emptyEl.hidden = expenses.length > 0;
 
   // مجموع الشهر الحالي ومجموع كل تصنيف
   const currentMonth = todayString().slice(0, 7); // YYYY-MM
   const monthExpenses = expenses.filter((e) => e.date.startsWith(currentMonth));
 
-  monthNameEl.textContent = new Date().toLocaleDateString("ar", { month: "long", year: "numeric" });
+  monthNameEl.textContent = new Date().toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
   monthTotalEl.textContent = formatMoney(monthExpenses.reduce((sum, e) => sum + e.amount, 0));
 
   const byCategory = {};
@@ -112,10 +136,25 @@ function deleteExpense(id) {
   render();
 }
 
+function openForm() {
+  form.reset();
+  dateInput.value = todayString();
+  dialog.showModal();
+  amountInput.focus();
+}
+
+addBtn.addEventListener("click", openForm);
+closeBtn.addEventListener("click", () => dialog.close());
+
+// إغلاق النافذة عند الضغط خارجها
+dialog.addEventListener("click", (event) => {
+  if (event.target === dialog) dialog.close();
+});
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
-  const amount = parseFloat(amountInput.value);
+  const amount = Number(toDigits(amountInput.value));
   if (!(amount > 0)) {
     alert("الرجاء إدخال مبلغ صحيح أكبر من صفر.");
     return;
@@ -130,11 +169,12 @@ form.addEventListener("submit", (event) => {
   });
   saveExpenses();
   render();
-
-  form.reset();
-  dateInput.value = todayString();
-  amountInput.focus();
+  dialog.close();
 });
 
-dateInput.value = todayString();
 render();
+
+// تشغيل التطبيق بدون إنترنت (يعمل فقط عند فتحه من رابط https)
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register("sw.js");
+}
