@@ -1,5 +1,5 @@
 // يحفظ ملفات التطبيق في الجوال حتى يعمل بدون إنترنت
-const CACHE = "masarifi-v1";
+const CACHE = "masarifi-v2";
 const FILES = [
   "./",
   "index.html",

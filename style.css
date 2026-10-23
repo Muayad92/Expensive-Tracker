@@ -253,3 +253,182 @@ select {
 .primary-btn:active {
   background: var(--primary-dark);
 }
+
+/* ===== المرحلة 2 ===== */
+
+/* التنقل بين الأشهر */
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.nav-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.nav-btn:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  text-decoration: underline;
+  font: inherit;
+  font-size: 0.9rem;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.link-btn.dark {
+  color: var(--muted);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.card-header h2 {
+  margin: 0;
+}
+
+.small-btn {
+  font: inherit;
+  font-size: 0.85rem;
+  background: #eef2f8;
+  color: var(--primary);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+/* البحث */
+.search {
+  margin-bottom: 8px;
+}
+
+.search-summary {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.expense-item {
+  cursor: pointer;
+}
+
+.expense-item:active {
+  background: #f6f8fb;
+}
+
+.danger-btn {
+  font: inherit;
+  padding: 12px;
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--danger);
+  cursor: pointer;
+}
+
+/* النوافذ الطويلة تُمرَّر من الداخل */
+.sheet {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* إدارة التصنيفات */
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.category-row-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.category-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.delete-placeholder {
+  width: 40px;
+}
+
+.category-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f6f8fb;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.category-form h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.icon-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+.icon-choice {
+  font-size: 1.3rem;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-choice.selected {
+  border-color: var(--primary);
+}
+
+.category-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chosen-icon {
+  font-size: 1.8rem;
+}

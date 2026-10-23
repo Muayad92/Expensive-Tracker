@@ -17,34 +17,47 @@
 <body>
   <header class="app-header">
     <h1>مصاريفي</h1>
-    <p class="month-label">مجموع <span id="month-name"></span></p>
+
+    <!-- التنقل بين الأشهر -->
+    <div class="month-nav">
+      <button type="button" id="prev-month" class="nav-btn" aria-label="الشهر السابق">›</button>
+      <p class="month-label">مجموع <span id="month-name"></span></p>
+      <button type="button" id="next-month" class="nav-btn" aria-label="الشهر التالي">‹</button>
+    </div>
     <p class="month-total" id="month-total">0 د.ع</p>
+    <button type="button" id="this-month" class="link-btn" hidden>العودة إلى الشهر الحالي</button>
   </header>
 
   <main class="container">
     <!-- مجموع كل تصنيف -->
     <section class="card">
-      <h2>حسب التصنيف (الشهر الحالي)</h2>
+      <div class="card-header">
+        <h2>حسب التصنيف</h2>
+        <button type="button" id="manage-categories" class="small-btn">⚙️ التصنيفات</button>
+      </div>
       <ul id="category-totals" class="totals"></ul>
     </section>
 
     <!-- قائمة المصاريف -->
     <section class="card">
-      <h2>المصاريف</h2>
-      <p id="empty-message" class="empty">لا توجد مصاريف بعد.<br>اضغط زر <strong>+</strong> لإضافة أول مصروف.</p>
+      <h2 id="list-title">المصاريف</h2>
+      <input type="search" id="search" class="search" placeholder="🔍 بحث في كل المصاريف">
+      <p id="search-summary" class="search-summary" hidden></p>
+      <p id="empty-message" class="empty"></p>
       <ul id="expense-list" class="expense-list"></ul>
+      <p class="hint" id="edit-hint" hidden>اضغط على أي مصروف لتعديله.</p>
     </section>
   </main>
 
   <!-- زر الإضافة العائم -->
   <button type="button" id="add-btn" class="fab" aria-label="إضافة مصروف">+</button>
 
-  <!-- نافذة إضافة مصروف -->
+  <!-- نافذة إضافة/تعديل مصروف -->
   <dialog id="expense-dialog" class="sheet">
     <form id="expense-form">
       <div class="sheet-header">
-        <h2>إضافة مصروف</h2>
-        <button type="button" id="close-btn" class="icon-btn" aria-label="إغلاق">✕</button>
+        <h2 id="form-title">إضافة مصروف</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
       </div>
 
       <label>
@@ -53,16 +66,7 @@
       </label>
       <label>
         التصنيف
-        <select id="category" required>
-          <option value="طعام">طعام</option>
-          <option value="مواصلات">مواصلات</option>
-          <option value="سكن">سكن</option>
-          <option value="فواتير">فواتير</option>
-          <option value="صحة">صحة</option>
-          <option value="ترفيه">ترفيه</option>
-          <option value="تسوق">تسوق</option>
-          <option value="أخرى">أخرى</option>
-        </select>
+        <select id="category" required></select>
       </label>
       <label>
         التاريخ
@@ -73,6 +77,28 @@
         <input type="text" id="note" maxlength="200" placeholder="اختياري">
       </label>
       <button type="submit" class="primary-btn">حفظ</button>
+      <button type="button" id="delete-in-form" class="danger-btn" hidden>حذف هذا المصروف</button>
+    </form>
+  </dialog>
+
+  <!-- نافذة إدارة التصنيفات -->
+  <dialog id="categories-dialog" class="sheet">
+    <div class="sheet-header">
+      <h2>التصنيفات</h2>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق">✕</button>
+    </div>
+
+    <ul id="category-list" class="category-list"></ul>
+
+    <form id="category-form" class="category-form">
+      <h3 id="category-form-title">إضافة تصنيف جديد</h3>
+      <div class="icon-picker" id="icon-picker"></div>
+      <div class="category-form-row">
+        <span id="chosen-icon" class="chosen-icon">🏷️</span>
+        <input type="text" id="category-name" maxlength="30" required placeholder="اسم التصنيف">
+      </div>
+      <button type="submit" class="primary-btn" id="category-save">إضافة</button>
+      <button type="button" class="link-btn dark" id="category-cancel" hidden>إلغاء التعديل</button>
     </form>
   </dialog>
 
