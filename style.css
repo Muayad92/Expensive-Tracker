@@ -2176,3 +2176,151 @@ select:focus {
   background: var(--bad);
   color: #fff;
 }
+
+.category-row.is-hidden .cat-icon,
+.category-row.is-hidden .category-row-name {
+  opacity: 0.45;
+}
+
+/* ===== الإعداد أول مرة ===== */
+
+.onboard {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  max-height: 100%;
+  margin: 0 auto;
+  border: none;
+  padding: calc(32px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  color: var(--text);
+}
+
+.onboard[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.onboard::backdrop {
+  background: var(--bg);
+}
+
+.onboard-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.onboard-step h2 {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.onboard-step .primary-btn {
+  margin-top: auto;
+}
+
+.onboard-logo {
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  margin: 40px 0 10px;
+  display: grid;
+  place-items: center;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.onboard-logo .ic {
+  width: 38px;
+  height: 38px;
+}
+
+.onboard-sub {
+  color: var(--text-2);
+}
+
+.onboard-points {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.onboard-points li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+}
+
+.onboard-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboard-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.onboard-q-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.yes-no {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+
+.yes-no button {
+  min-width: 52px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.yes-no button.selected {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.onboard-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.onboard-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--border);
+  transition: width 0.2s;
+}
+
+.onboard-dots span.on {
+  width: 20px;
+  background: var(--primary);
+}

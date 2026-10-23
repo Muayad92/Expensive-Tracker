@@ -949,10 +949,22 @@ function renderCategoryList() {
     categoryListEl.appendChild(el("li", "category-group-title", group.name));
     for (const cat of inGroup) {
       const count = expenses.filter((e) => e.categoryId === cat.id).length;
-      const li = el("li", "category-row");
+      const li = el("li", cat.hidden ? "category-row is-hidden" : "category-row");
       const info = el("span", "category-row-name");
-      info.append(cat.name, el("small", "category-count", `${count} مصروف`));
+      info.append(cat.name, el("small", "category-count", cat.hidden ? `مخفي · ${count} مصروف` : `${count} مصروف`));
       li.append(catBadge(cat, "sm"), info);
+
+      // التصنيف المخفي لا يظهر عند إضافة مصروف، لكن مصاريفه السابقة تبقى كما هي
+      const toggle = el("button", "icon-btn");
+      toggle.type = "button";
+      toggle.setAttribute("aria-label", cat.hidden ? `إظهار ${cat.name}` : `إخفاء ${cat.name}`);
+      toggle.appendChild(icon(cat.hidden ? "eye-off" : "eye"));
+      toggle.addEventListener("click", () => {
+        cat.hidden = !cat.hidden;
+        save();
+        renderCategoryList();
+      });
+      li.appendChild(toggle);
 
       const editBtn = el("button", "small-btn", "تعديل");
       editBtn.type = "button";

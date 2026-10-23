@@ -557,6 +557,40 @@
     <ul id="recurring-list" class="category-list"></ul>
   </dialog>
 
+  <!-- الإعداد أول مرة: ترحيب، ثم أسئلة لإخفاء التصنيفات غير المستخدمة، ثم الميزانية -->
+  <dialog id="onboarding" class="onboard">
+    <div class="onboard-step" data-step="1">
+      <div class="onboard-logo"><svg class="ic lg"><use href="icons/sprite.svg#i-wallet"/></svg></div>
+      <h2>أهلاً بك في مصاريفي</h2>
+      <ul class="onboard-points">
+        <li><span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-zap"/></svg></span>سجّل مصروفك بثلاث ضغطات</li>
+        <li><span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-target"/></svg></span>اعرف كم تقدر تصرف كل يوم</li>
+        <li><span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-eye-off"/></svg></span>بياناتك في جوالك فقط، بلا حساب ولا إنترنت</li>
+      </ul>
+      <button type="button" class="primary-btn" data-next>ابدأ</button>
+    </div>
+
+    <div class="onboard-step" data-step="2" hidden>
+      <h2>حتى نرتّب لك التصنيفات</h2>
+      <p class="onboard-sub">نُخفي ما لا يخصك. تقدر تغيّر هذا لاحقاً من "التصنيفات".</p>
+      <div id="onboard-questions" class="onboard-questions"></div>
+      <button type="button" class="primary-btn" data-next>التالي</button>
+    </div>
+
+    <div class="onboard-step" data-step="3" hidden>
+      <h2>ميزانيتك الشهرية</h2>
+      <p class="onboard-sub">حتى نحسب لك كل يوم كم تقدر تصرف. اختياري.</p>
+      <label>
+        المبلغ (دينار عراقي)
+        <input type="text" id="onboard-budget" class="money-input" inputmode="numeric" autocomplete="off" placeholder="مثال: 1,000,000">
+      </label>
+      <button type="button" class="primary-btn" id="onboard-finish">ابدأ استخدام التطبيق</button>
+      <button type="button" class="link-btn dark" id="onboard-skip">تخطَّ</button>
+    </div>
+
+    <div class="onboard-dots"><span class="on"></span><span></span><span></span></div>
+  </dialog>
+
   <!-- رسالة قصيرة أسفل الشاشة (مع زر تراجع) -->
   <div id="toast" class="toast" hidden>
     <span id="toast-text"></span>
@@ -568,5 +602,6 @@
   <script src="jamiya-loans.js"></script>
   <script src="seasons.js"></script>
   <script src="planning.js"></script>
+  <script src="onboarding.js"></script>
 </body>
 </html>

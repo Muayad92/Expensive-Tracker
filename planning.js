@@ -200,6 +200,7 @@ $("open-budget").addEventListener("click", () => {
   list.innerHTML = "";
   let lastGroup = null;
   for (const cat of sortCategories(categories)) {
+    if (cat.hidden && !budgets.byCategory[cat.id]) continue;
     if (cat.group !== lastGroup) {
       list.appendChild(el("p", "category-group-title", getGroup(cat.group).name));
       lastGroup = cat.group;
