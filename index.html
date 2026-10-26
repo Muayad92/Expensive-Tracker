@@ -404,21 +404,25 @@
         <input type="text" id="jamiya-name" maxlength="40" required placeholder="مثال: سلفة الشغل">
       </label>
       <label>
-        القسط الشهري (دينار عراقي)
-        <input type="text" id="jamiya-amount" inputmode="numeric" autocomplete="off" required placeholder="مثال: 250,000">
+        مبلغ الاسم الواحد شهرياً (دينار عراقي)
+        <input type="text" id="jamiya-amount" inputmode="numeric" autocomplete="off" required placeholder="مثال: 500,000">
       </label>
-      <label>
-        عدد المشتركين (= عدد الأشهر)
-        <input type="number" id="jamiya-members" min="2" max="60" step="1" required value="10">
-      </label>
+      <div class="form-row even">
+        <label>
+          عدد أسمائي
+          <input type="number" id="jamiya-shares" min="1" max="60" step="1" required value="1">
+        </label>
+        <label>
+          كل الأسماء في السلفة
+          <input type="number" id="jamiya-members" min="2" max="60" step="1" required value="10">
+        </label>
+      </div>
       <label>
         شهر البداية
         <input type="month" id="jamiya-start" required>
       </label>
-      <label>
-        دوري في الاستلام (رقم الشهر)
-        <select id="jamiya-turn"></select>
-      </label>
+      <!-- دور كل اسم من أسمائي: يُحدَّد عندما يطلع بالقرعة -->
+      <div id="jamiya-turns" class="turn-selects"></div>
       <p id="jamiya-preview" class="search-summary"></p>
       <button type="submit" class="primary-btn">حفظ</button>
       <button type="button" id="jamiya-delete" class="danger-btn" hidden>حذف هذه السلفة</button>

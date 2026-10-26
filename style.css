@@ -2396,3 +2396,60 @@ button.with-icon {
 .pie-leader {
   pointer-events: none;
 }
+
+/* ===== السلفة بعدة أسماء ===== */
+
+.form-row.even {
+  grid-template-columns: 1fr 1fr;
+}
+
+.turn-selects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.turn-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  border-top: 1px solid var(--surface-2);
+}
+
+.turn-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface-2);
+  font-size: 13.5px;
+}
+
+.turn-name {
+  flex-shrink: 0;
+  min-width: 52px;
+  font-weight: 600;
+}
+
+.turn-status {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.turn-status .link-btn {
+  margin: 0;
+  padding: 0 4px;
+}
+
+.jamiya-balance {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.warn-text {
+  color: var(--warn);
+}
