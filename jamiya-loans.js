@@ -284,9 +284,63 @@ function renderJamiya(j) {
   return box;
 }
 
+// القسط الذي سُجّل للتو في الشهر الحالي يأخذ تاريخ اليوم، وغيره يأخذ أول يوم في شهره
+let justPaidKey = null;
+
 function toggleJamiyaPaid(j, month) {
-  j.paid = j.paid.includes(month) ? j.paid.filter((m) => m !== month) : [...j.paid, month];
+  const paying = !j.paid.includes(month);
+  j.paid = paying ? [...j.paid, month] : j.paid.filter((m) => m !== month);
+  justPaidKey = paying ? `${j.id}|${month}` : null;
   save();
+  justPaidKey = null;
+  render();
+  if (paying) {
+    showToast(`سُجّل قسط ${monthLabel(month)}: ${formatMoney(j.amount)} من مصروف الشهر إلى الادخار`);
+    const exp = expenses.find((e) => e.jamiyaId === j.id && e.date.startsWith(month));
+    if (exp) notifyBudget(exp);
+  }
+}
+
+// ===== أقساط السلفة كمصاريف =====
+
+// كل شهر مدفوع في سلفة = مصروف بتصنيف "قسط سلفة" في ذلك الشهر، يُخصم من مصروف الشهر ويُحسب ادخاراً.
+// تُستدعى من save() في app.js، فتبقى المصاريف مطابقة للأشهر المدفوعة بعد أي تعديل أو حذف أو استرجاع
+function syncJamiyaExpenses() {
+  const today = todayString();
+  const wanted = new Map();
+  for (const j of jamiyas) {
+    for (const month of jamiyaInfo(j).months) {
+      if (j.paid.includes(month)) wanted.set(`${j.id}|${month}`, j);
+    }
+  }
+
+  // نحذف ما لم يعد مدفوعاً، ونحدّث مبلغ واسم الموجود
+  const kept = new Set();
+  expenses = expenses.filter((e) => {
+    if (!e.jamiyaId) return true;
+    const key = `${e.jamiyaId}|${e.date.slice(0, 7)}`;
+    const j = wanted.get(key);
+    if (!j || kept.has(key)) return false;
+    kept.add(key);
+    e.amount = j.amount;
+    e.categoryId = JAMIYA_CATEGORY_ID;
+    e.note = `قسط ${j.name}`;
+    return true;
+  });
+
+  // ونضيف الناقص: ما سُجّل للتو في هذا الشهر بتاريخ اليوم، والباقي بأول يوم في شهره
+  for (const [key, j] of wanted) {
+    if (kept.has(key)) continue;
+    const month = key.split("|")[1];
+    expenses.push({
+      id: nextExpenseId(),
+      amount: j.amount,
+      categoryId: JAMIYA_CATEGORY_ID,
+      date: key === justPaidKey && month === today.slice(0, 7) ? today : `${month}-01`,
+      note: `قسط ${j.name}`,
+      jamiyaId: j.id,
+    });
+  }
 }
 
 function renderLoans() {
@@ -490,6 +544,7 @@ jamiyaForm.addEventListener("submit", (event) => {
     jamiyas.push({ id: newId(), ...data, paid: [], receivedOn: null });
   }
   save();
+  render();
   jamiyaDialog.close();
 });
 
@@ -497,6 +552,7 @@ $("jamiya-delete").addEventListener("click", () => {
   if (!confirm(`حذف سلفة "${editingJamiya.name}" وكل أقساطها المسجلة؟`)) return;
   jamiyas = jamiyas.filter((j) => j !== editingJamiya);
   save();
+  render();
   jamiyaDialog.close();
 });
 
@@ -625,5 +681,12 @@ $("payment-form").addEventListener("submit", (event) => {
 // ===== التشغيل =====
 
 [jamiyaDialog, loanDialog, paymentDialog].forEach(setupDialog);
+
+// عند فتح التطبيق: الأقساط المدفوعة سابقاً تُسجَّل مصاريف في أشهرها (مرة واحدة بعد التحديث)
+{
+  const before = JSON.stringify(expenses.filter((e) => e.jamiyaId));
+  syncJamiyaExpenses();
+  if (JSON.stringify(expenses.filter((e) => e.jamiyaId)) !== before) save();
+}
 document.addEventListener("data-changed", renderSocial);
 renderSocial();

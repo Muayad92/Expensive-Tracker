@@ -74,6 +74,8 @@ function load(key) {
 }
 
 function save() {
+  // أقساط السلفة المدفوعة تبقى مسجّلة مصاريف (الدالة في jamiya-loans.js، وقد لا تكون حُمّلت بعد)
+  if (typeof syncJamiyaExpenses === "function") syncJamiyaExpenses();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
@@ -141,6 +143,11 @@ if (migrated) save();
     budgets = state.budgets;
     save();
   }
+}
+
+// التصنيفات الثابتة (مثل "قسط سلفة") تُضاف لمن حدّث التطبيق
+for (const d of DEFAULT_CATEGORIES.filter((c) => c.system)) {
+  if (!categories.some((c) => c.id === d.id)) categories = sortCategories([...categories, { ...d }]);
 }
 
 // لون التصنيف هو لون مجموعته
@@ -402,12 +409,18 @@ function renderExpense(exp) {
   const row = el("div", "expense-row");
   row.tabIndex = 0;
   row.setAttribute("role", "button");
+  // قسط السلفة يُعدَّل أو يُلغى من صفحة السلفة والديون، حتى يبقى الاثنان متطابقين
+  const open = () => {
+    if (!exp.jamiyaId) return openForm(exp);
+    showView("view-social");
+    showToast("قسط السلفة يُسجَّل ويُلغى من شبكة أشهر السلفة");
+  };
   row.addEventListener("click", () => {
-    if (!item.dataset.swiped) openForm(exp);
+    if (!item.dataset.swiped) open();
   });
   row.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") openForm(exp);
-    if (event.key === "Delete") deleteExpense(exp.id);
+    if (event.key === "Enter") open();
+    if (event.key === "Delete" && !exp.jamiyaId) deleteExpense(exp.id);
   });
 
   const info = el("div", "expense-info");
@@ -415,6 +428,7 @@ function renderExpense(exp) {
   if (exp.worth === "no") title.appendChild(el("span", "tag bad", "ندمت"));
   if (exp.worth === "yes") title.appendChild(el("span", "tag good", "يستحق"));
   if (exp.recurringId) title.appendChild(el("span", "tag", "ثابت"));
+  if (exp.jamiyaId) title.appendChild(el("span", "tag", "ادخار"));
   info.appendChild(title);
   if (exp.note) info.appendChild(el("div", "expense-meta", exp.note));
 
@@ -423,7 +437,7 @@ function renderExpense(exp) {
 
   row.append(catBadge(cat), info, amount);
   item.append(back, row);
-  enableSwipe(item, row, () => deleteExpense(exp.id));
+  if (!exp.jamiyaId) enableSwipe(item, row, () => deleteExpense(exp.id));
   return item;
 }
 
@@ -741,7 +755,7 @@ const STARTER_CATEGORIES = ["groceries", "bread", "fuel", "taxi", "cafe", "mobil
 let pickerGroup = null;
 
 function visibleCategories() {
-  return categories.filter((c) => !c.hidden);
+  return categories.filter((c) => !c.hidden && !c.system);
 }
 
 // أكثر التصنيفات استخداماً في آخر 3 أشهر، ثم نكمل من القائمة الافتراضية
@@ -749,7 +763,7 @@ function topCategories() {
   const since = isoDateOffset(-QUICK_CATEGORY_DAYS);
   const counts = {};
   for (const e of expenses) {
-    if (e.recurringId || e.date < since) continue;
+    if (e.recurringId || e.jamiyaId || e.date < since) continue;
     counts[e.categoryId] = (counts[e.categoryId] || 0) + 1;
   }
   const visible = visibleCategories();
@@ -786,7 +800,7 @@ function renderCategoryPicker() {
   const tabs = $("group-tabs");
   tabs.innerHTML = "";
   for (const group of GROUPS) {
-    if (!visibleCategories().some((c) => c.group === group.id) && !(selected && selected.group === group.id)) continue;
+    if (!visibleCategories().some((c) => c.group === group.id)) continue;
     const tab = el("button", group.id === pickerGroup ? "group-tab active" : "group-tab");
     tab.type = "button";
     tab.style.setProperty("--c", groupColor(group.id));
@@ -797,7 +811,7 @@ function renderCategoryPicker() {
     });
     tabs.appendChild(tab);
   }
-  const inGroup = categories.filter((c) => c.group === pickerGroup && (!c.hidden || c === selected));
+  const inGroup = categories.filter((c) => c.group === pickerGroup && !c.system && (!c.hidden || c === selected));
   $("category-grid").replaceChildren(...inGroup.map((cat) => categoryButton(cat, "cat-tile")));
 }
 
@@ -960,6 +974,13 @@ function renderCategoryList() {
       const info = el("span", "category-row-name");
       info.append(cat.name, el("small", "category-count", cat.hidden ? `مخفي · ${count} مصروف` : `${count} مصروف`));
       li.append(catBadge(cat, "sm"), info);
+
+      if (cat.system) {
+        info.lastChild.textContent = `${count} مصروف · يُضاف تلقائياً`;
+        li.append(el("span", "delete-placeholder"), el("span", "delete-placeholder"));
+        categoryListEl.appendChild(li);
+        continue;
+      }
 
       // التصنيف المخفي لا يظهر عند إضافة مصروف، لكن مصاريفه السابقة تبقى كما هي
       const toggle = el("button", "icon-btn");
@@ -1228,7 +1249,7 @@ function regretQueue() {
   return expenses
     .filter((e) => {
       const age = daysAgo(e.date);
-      return !e.worth && !e.recurringId && age >= REGRET_DELAY_DAYS && age <= REGRET_WINDOW_DAYS;
+      return !e.worth && !e.recurringId && !e.jamiyaId && age >= REGRET_DELAY_DAYS && age <= REGRET_WINDOW_DAYS;
     })
     .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
 }
@@ -1481,6 +1502,7 @@ function parseBackup(text) {
       note: typeof e.note === "string" ? e.note.slice(0, 200) : "",
       ...(["yes", "no", "skip"].includes(e.worth) ? { worth: e.worth } : {}),
       ...(typeof e.recurringId === "string" ? { recurringId: e.recurringId } : {}),
+      ...(typeof e.jamiyaId === "string" ? { jamiyaId: e.jamiyaId } : {}),
     });
   }
 

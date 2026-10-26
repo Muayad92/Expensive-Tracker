@@ -10,11 +10,14 @@ const GROUPS = [
   { id: "family", name: "العائلة", icon: "users", color: 5 },
   { id: "health", name: "الصحة", icon: "stethoscope", color: 6 },
   { id: "social", name: "الواجبات الاجتماعية", icon: "heart-handshake", color: 7 },
+  { id: "savings", name: "الادخار", icon: "piggy-bank", color: 8 },
   { id: "other", name: "أخرى", icon: "package", color: "rest" },
 ];
 
 // تصنيف "أخرى" لا يُحذف، وتنتقل إليه مصاريف أي تصنيف محذوف
 const OTHER_ID = "other";
+// أقساط السلفة تُسجَّل مصاريف بهذا التصنيف
+const JAMIYA_CATEGORY_ID = "jamiya-installment";
 
 const DEFAULT_CATEGORIES = [
   { id: "rent", name: "إيجار", icon: "key-round", group: "home" },
@@ -55,6 +58,9 @@ const DEFAULT_CATEGORIES = [
   { id: "fun", name: "ترفيه وطلعات", icon: "ticket", group: "other" },
   { id: "smoking", name: "سكائر وأركيلة", icon: "cigarette", group: "other" },
   { id: OTHER_ID, name: "أخرى", icon: "package", group: "other" },
+
+  // تصنيف ثابت: يُضاف تلقائياً عند تسجيل دفع قسط سلفة (لا يُختار يدوياً ولا يُحذف)
+  { id: JAMIYA_CATEGORY_ID, name: "قسط سلفة", icon: "piggy-bank", group: "savings", system: true },
 ];
 
 // الأيقونات التي يختار منها المستخدم عند إضافة تصنيف (كلها في icons/sprite.svg)
