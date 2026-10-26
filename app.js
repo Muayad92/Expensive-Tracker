@@ -7,6 +7,8 @@ const SEASONS_KEY = "seasons";
 const BUDGETS_KEY = "budgets";
 const RECURRING_KEY = "recurring";
 const GROUPS_KEY = "groups";
+const METHODS_KEY = "methods";
+const LAST_METHOD_KEY = "lastMethod";
 // خيار "+ مجموعة جديدة…" في قوائم المجموعات
 const NEW_GROUP_OPTION = "__new";
 
@@ -88,6 +90,7 @@ function save() {
     localStorage.setItem(BUDGETS_KEY, JSON.stringify(budgets));
     localStorage.setItem(RECURRING_KEY, JSON.stringify(recurring));
     localStorage.setItem(GROUPS_KEY, JSON.stringify(customGroups));
+    localStorage.setItem(METHODS_KEY, JSON.stringify(methods));
   } catch {
     alert("تعذّر حفظ البيانات في المتصفح.");
   }
@@ -98,6 +101,10 @@ function save() {
 // مجموعات أضافها المستخدم (تُدمج مع الأساسية في categories.js)
 let customGroups = (load(GROUPS_KEY) || []).map(sanitizeGroup).filter(Boolean);
 applyCustomGroups(customGroups);
+
+// طرق الدفع (كاش، كي كارد...). المصروف بلا طريقة يُعتبر كاش
+let methods = (load(METHODS_KEY) || DEFAULT_METHODS).map(sanitizeMethod).filter(Boolean);
+if (!methods.some((m) => m.id === CASH_ID)) methods.unshift({ ...DEFAULT_METHODS[0] });
 
 let expenses = load(STORAGE_KEY) || [];
 let categories = load(CATEGORIES_KEY) || DEFAULT_CATEGORIES.map((c) => ({ ...c }));
@@ -326,6 +333,7 @@ function render() {
   renderQuickAdd();
   renderRegretAsk();
   renderCategoryTotals(monthExpenses);
+  renderMethodTotals(monthExpenses);
   renderRegretStats(monthExpenses);
 
   // القائمة: نتائج البحث من كل الأشهر، أو مصاريف الشهر المختار
@@ -353,6 +361,10 @@ function render() {
   if (listGroup && !presentGroups.has(listGroup)) listGroup = null;
   renderGroupFilter(presentGroups);
   if (listGroup) shown = shown.filter((e) => getCategory(e.categoryId).group === listGroup);
+  const presentMethods = new Set(shown.map((e) => e.method || CASH_ID));
+  if (listMethod && !presentMethods.has(listMethod)) listMethod = null;
+  renderMethodFilter(presentMethods);
+  if (listMethod) shown = shown.filter((e) => (e.method || CASH_ID) === listMethod);
 
   shown.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
   listEl.innerHTML = "";
@@ -376,6 +388,23 @@ function render() {
 }
 
 let listGroup = null;
+let listMethod = null;
+
+function renderMethodFilter(presentMethods) {
+  const box = $("method-filter");
+  box.innerHTML = "";
+  box.hidden = presentMethods.size < 2 && !listMethod;
+  if (box.hidden) return;
+  for (const m of methods.filter((x) => presentMethods.has(x.id))) {
+    const btn = iconText("button", m.icon, m.name, listMethod === m.id ? "filter-chip active" : "filter-chip");
+    btn.type = "button";
+    btn.addEventListener("click", () => {
+      listMethod = listMethod === m.id ? null : m.id;
+      render();
+    });
+    box.appendChild(btn);
+  }
+}
 
 function renderGroupFilter(presentGroups) {
   const box = $("group-filter");
@@ -440,6 +469,7 @@ function renderExpense(exp) {
   if (exp.worth === "yes") title.appendChild(el("span", "tag good", "يستحق"));
   if (exp.recurringId) title.appendChild(el("span", "tag", "ثابت"));
   if (exp.jamiyaId) title.appendChild(el("span", "tag", "ادخار"));
+  if (exp.method && exp.method !== CASH_ID) title.appendChild(el("span", "tag", getMethod(exp.method).name));
   info.appendChild(title);
   if (exp.note) info.appendChild(el("div", "expense-meta", exp.note));
 
@@ -864,6 +894,139 @@ $("show-all-cats").addEventListener("click", () => {
   $("show-all-cats").classList.toggle("open", !all.hidden);
 });
 
+// ===== طرق الدفع =====
+
+let chosenMethod = CASH_ID;
+
+function getMethod(id) {
+  return methods.find((m) => m.id === id) || methods.find((m) => m.id === CASH_ID);
+}
+
+function lastMethod() {
+  try {
+    const id = localStorage.getItem(LAST_METHOD_KEY);
+    return methods.some((m) => m.id === id) ? id : CASH_ID;
+  } catch {
+    return CASH_ID;
+  }
+}
+
+function renderMethodChips() {
+  const box = $("method-chips");
+  box.innerHTML = "";
+  for (const m of methods) {
+    const btn = iconText("button", m.icon, m.name, m.id === chosenMethod ? "method-chip selected" : "method-chip");
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", String(m.id === chosenMethod));
+    btn.addEventListener("click", () => {
+      chosenMethod = m.id;
+      renderMethodChips();
+    });
+    box.appendChild(btn);
+  }
+  const add = iconText("button", "plus", "", "method-chip add");
+  add.type = "button";
+  add.setAttribute("aria-label", "طريقة دفع جديدة");
+  add.addEventListener("click", () => {
+    const m = addMethod();
+    if (m) {
+      chosenMethod = m.id;
+      renderMethodChips();
+    }
+  });
+  box.appendChild(add);
+}
+
+// طريقة دفع جديدة باسم يكتبه المستخدم (مثل FastPay أو آسيا حوالة)
+function addMethod() {
+  const name = (prompt("اسم طريقة الدفع (مثال: FastPay أو آسيا حوالة):") || "").trim();
+  if (!name) return null;
+  const existing = methods.find((m) => normalize(m.name) === normalize(name));
+  if (existing) return existing;
+  const m = { id: newId(), name: name.slice(0, 30), icon: "wallet" };
+  methods.push(m);
+  save();
+  return m;
+}
+
+function renderMethodsList() {
+  const list = $("methods-list");
+  list.innerHTML = "";
+  for (const m of methods) {
+    const count = expenses.filter((e) => (e.method || CASH_ID) === m.id).length;
+    const li = el("li", "category-row");
+    const badge = el("span", "cat-icon sm");
+    badge.appendChild(icon(m.icon, "sm"));
+    const info = el("span", "category-row-name");
+    info.append(m.name, el("small", "category-count", `${count} مصروف`));
+    const rename = el("button", "small-btn", "تعديل");
+    rename.type = "button";
+    rename.addEventListener("click", () => {
+      const name = (prompt("الاسم الجديد:", m.name) || "").trim();
+      if (!name) return;
+      m.name = name.slice(0, 30);
+      save();
+      renderMethodsList();
+      render();
+    });
+    li.append(badge, info, rename);
+    if (m.id !== CASH_ID) {
+      const del = el("button", "delete-btn");
+      del.type = "button";
+      del.setAttribute("aria-label", `حذف ${m.name}`);
+      del.appendChild(icon("trash-2"));
+      del.addEventListener("click", () => {
+        if (!confirm(count ? `حذف "${m.name}"؟ مصاريفها (${count}) تُعتبر كاش.` : `حذف "${m.name}"؟`)) return;
+        for (const e of expenses) if (e.method === m.id) e.method = CASH_ID;
+        for (const r of recurring) if (r.method === m.id) r.method = CASH_ID;
+        methods = methods.filter((x) => x !== m);
+        save();
+        renderMethodsList();
+        render();
+      });
+      li.appendChild(del);
+    } else {
+      li.appendChild(el("span", "delete-placeholder"));
+    }
+    list.appendChild(li);
+  }
+}
+
+$("open-methods").addEventListener("click", () => {
+  renderMethodsList();
+  $("methods-dialog").showModal();
+});
+$("add-method").addEventListener("click", () => {
+  if (addMethod()) renderMethodsList();
+});
+
+// مجموع كل طريقة دفع في الشهر (يظهر عند استخدام أكثر من طريقة)
+function renderMethodTotals(monthExpenses) {
+  const totals = {};
+  for (const e of monthExpenses) totals[e.method || CASH_ID] = (totals[e.method || CASH_ID] || 0) + e.amount;
+  const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  $("methods-card").hidden = entries.length < 2;
+  const list = $("method-totals");
+  list.innerHTML = "";
+  const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
+  const percents = roundedPercents(entries.map(([, v]) => v), total);
+  entries.forEach(([id, sum], i) => {
+    const m = getMethod(id);
+    const li = el("li", "method-total");
+    const name = el("span", "category-name");
+    const badge = el("span", "cat-icon sm");
+    badge.appendChild(icon(m.icon, "sm"));
+    name.append(badge, m.name);
+    li.append(name, el("strong", "money", `${formatMoney(sum)} · ${percents[i]}%`));
+    const bar = el("div", "meter");
+    const fill = el("div", "meter-fill");
+    fill.style.width = `${percents[i]}%`;
+    bar.appendChild(fill);
+    li.appendChild(bar);
+    list.appendChild(li);
+  });
+}
+
 // ===== إضافة وتعديل وحذف المصاريف =====
 
 function openForm(exp) {
@@ -893,6 +1056,8 @@ function openForm(exp) {
     dateInput.value = today.startsWith(viewMonth) ? today : `${viewMonth}-01`;
   }
 
+  chosenMethod = exp ? exp.method || CASH_ID : lastMethod();
+  renderMethodChips();
   updateAmountDisplay();
   renderCategoryPicker();
   expenseDialog.showModal();
@@ -946,7 +1111,13 @@ form.addEventListener("submit", (event) => {
     categoryId: categoryInput.value,
     date: dateInput.value,
     note: noteInput.value.trim(),
+    method: chosenMethod,
   };
+  try {
+    localStorage.setItem(LAST_METHOD_KEY, chosenMethod);
+  } catch {
+    // يبقى الاختيار الافتراضي كاش
+  }
 
   if (editingId !== null) {
     const exp = expenses.find((e) => e.id === editingId);
@@ -1674,6 +1845,7 @@ async function exportBackup() {
     budgets,
     recurring,
     groups: customGroups,
+    methods,
   };
   const saved = await deliverFile(
     JSON.stringify(backup, null, 2),
@@ -1698,11 +1870,11 @@ function exportCsv() {
   }
   const cell = (value) => `"${String(value).replace(/"/g, '""')}"`;
   const worthText = { yes: "يستحق", no: "ندمت" };
-  const rows = [["التاريخ", "التصنيف", "المبلغ (د.ع)", "ملاحظة", "هل كان يستحق؟"].map(cell).join(",")];
+  const rows = [["التاريخ", "التصنيف", "المبلغ (د.ع)", "طريقة الدفع", "ملاحظة", "هل كان يستحق؟"].map(cell).join(",")];
   const sorted = [...expenses].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
   for (const e of sorted) {
     rows.push(
-      [e.date, getCategory(e.categoryId).name, e.amount, e.note || "", worthText[e.worth] || ""].map(cell).join(",")
+      [e.date, getCategory(e.categoryId).name, e.amount, getMethod(e.method).name, e.note || "", worthText[e.worth] || ""].map(cell).join(",")
     );
   }
   deliverFile("\uFEFF" + rows.join("\r\n"), `masarifi-${todayString()}.csv`, "text/csv");
@@ -1754,6 +1926,7 @@ function parseBackup(text) {
       ...(["yes", "no", "skip"].includes(e.worth) ? { worth: e.worth } : {}),
       ...(typeof e.recurringId === "string" ? { recurringId: e.recurringId } : {}),
       ...(typeof e.jamiyaId === "string" ? { jamiyaId: e.jamiyaId } : {}),
+      ...(typeof e.method === "string" ? { method: e.method } : {}),
     });
   }
 
@@ -1768,6 +1941,7 @@ function parseBackup(text) {
     seasons: cleanList(data.seasons, sanitizeSeason),
     budgets: sanitizeBudgets(data.budgets),
     groups: backupGroups,
+    methods: cleanList(data.methods, sanitizeMethod),
     recurring: cleanList(data.recurring, sanitizeRecurring),
     skipped,
     exportedAt: data.exportedAt,
@@ -1846,7 +2020,10 @@ function mergeImport(backup) {
   for (const season of backup.seasons || []) {
     if (!seasons.some((x) => x.id === season.id)) seasons.push(season);
   }
-  // المجموعات: تُضاف غير الموجودة
+  // طرق الدفع والمجموعات: تُضاف غير الموجودة
+  for (const m of backup.methods || []) {
+    if (!methods.some((x) => x.id === m.id)) methods.push(m);
+  }
   for (const g of backup.groups || []) {
     if (!customGroups.some((x) => x.id === g.id)) customGroups.push(g);
   }
@@ -1867,6 +2044,10 @@ function mergeImport(backup) {
 }
 
 function replaceWithImport(backup) {
+  if (backup.methods) {
+    methods = backup.methods;
+    if (!methods.some((m) => m.id === CASH_ID)) methods.unshift({ ...DEFAULT_METHODS[0] });
+  }
   if (backup.groups) {
     customGroups = backup.groups;
     applyCustomGroups(customGroups);
@@ -1942,7 +2123,7 @@ function setupDialog(dialog) {
   });
 }
 
-[expenseDialog, categoriesDialog, importDialog, workDialog, groupDialog, quickCategoryDialog].forEach(setupDialog);
+[expenseDialog, categoriesDialog, importDialog, workDialog, groupDialog, quickCategoryDialog, $("methods-dialog")].forEach(setupDialog);
 
 // ===== إخفاء المبالغ =====
 

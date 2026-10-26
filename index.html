@@ -93,6 +93,12 @@
         <ul id="category-totals" class="totals"></ul>
       </section>
 
+      <!-- حسب طريقة الدفع (تظهر عند استخدام أكثر من طريقة في الشهر) -->
+      <section id="methods-card" class="card" hidden>
+        <h2 class="card-title">حسب طريقة الدفع</h2>
+        <ul id="method-totals" class="totals"></ul>
+      </section>
+
       <!-- نتيجة ميزان الندم للشهر المختار -->
       <section id="regret-stats" class="card" hidden>
         <h2 class="card-title">ميزان الندم</h2>
@@ -119,6 +125,7 @@
       </label>
       <!-- تصفية حسب المجموعة -->
       <div id="group-filter" class="filter-chips"></div>
+      <div id="method-filter" class="filter-chips" hidden></div>
       <div class="list-head">
         <h2 id="list-title" class="section-label">المصاريف</h2>
         <p id="search-summary" class="search-summary" hidden></p>
@@ -188,6 +195,11 @@
         <button type="button" id="manage-categories" class="menu-row">
           <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-tags"/></svg></span>
           <span class="menu-text"><b>التصنيفات</b></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+        <button type="button" id="open-methods" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-wallet"/></svg></span>
+          <span class="menu-text"><b>طرق الدفع</b><small>كاش، كي كارد، زين كاش...</small></span>
           <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
         </button>
         <button type="button" id="open-budget" class="menu-row">
@@ -296,6 +308,14 @@
       </div>
       <input type="hidden" id="category">
 
+      <!-- طريقة الدفع: يتذكر آخر طريقة -->
+      <div class="picker" id="method-picker">
+        <div class="picker-head">
+          <span class="picker-label">طريقة الدفع</span>
+        </div>
+        <div id="method-chips" class="method-chips"></div>
+      </div>
+
       <div class="field-row">
         <label class="field">
           <svg class="ic sm"><use href="icons/sprite.svg#i-calendar"/></svg>
@@ -402,6 +422,16 @@
       </div>
       <button type="button" id="group-delete" class="danger-btn" hidden>حذف هذه المجموعة</button>
     </form>
+  </dialog>
+
+  <!-- نافذة طرق الدفع -->
+  <dialog id="methods-dialog" class="sheet">
+    <div class="sheet-header">
+      <h2>طرق الدفع</h2>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
+    </div>
+    <ul id="methods-list" class="category-list"></ul>
+    <button type="button" id="add-method" class="action-btn with-icon"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> طريقة دفع جديدة</button>
   </dialog>
 
   <!-- نافذة الاسترجاع من نسخة احتياطية -->

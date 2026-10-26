@@ -255,6 +255,7 @@ function createRecurring(exp) {
     categoryId: exp.categoryId,
     note: exp.note,
     day: Number(exp.date.slice(8, 10)),
+    method: exp.method || CASH_ID,
     lastMonth: exp.date.slice(0, 7),
   });
   return id;
@@ -272,7 +273,7 @@ function addDueRecurring() {
       const lastDay = new Date(y, m, 0).getDate(); // يوم 31 يصبح 30 أو 28 في الأشهر الأقصر
       const date = `${month}-${String(Math.min(r.day, lastDay)).padStart(2, "0")}`;
       if (date > today) break;
-      expenses.push({ id: nextExpenseId(), amount: r.amount, categoryId: r.categoryId, date, note: r.note, recurringId: r.id });
+      expenses.push({ id: nextExpenseId(), amount: r.amount, categoryId: r.categoryId, date, note: r.note, method: r.method || CASH_ID, recurringId: r.id });
       r.lastMonth = month;
       added++;
       month = shiftMonth(month, 1);
@@ -344,6 +345,8 @@ function quickSuggestions() {
     const key = `${e.categoryId}|${e.amount}|${e.note || ""}`;
     const g = groups.get(key) || { categoryId: e.categoryId, amount: e.amount, note: e.note || "", count: 0, last: "" };
     g.count++;
+    // طريقة الدفع من آخر مرة
+    if (e.date >= g.last) g.method = e.method || CASH_ID;
     if (e.date > g.last) g.last = e.date;
     groups.set(key, g);
   }
@@ -371,7 +374,7 @@ function renderQuickAdd() {
 }
 
 function quickAdd(s) {
-  const exp = { id: nextExpenseId(), amount: s.amount, categoryId: s.categoryId, date: todayString(), note: s.note };
+  const exp = { id: nextExpenseId(), amount: s.amount, categoryId: s.categoryId, date: todayString(), note: s.note, method: s.method || CASH_ID };
   expenses.push(exp);
   viewMonth = exp.date.slice(0, 7);
   save();
@@ -438,6 +441,7 @@ function sanitizeRecurring(r) {
     note: typeof r.note === "string" ? r.note.slice(0, 200) : "",
     day,
     lastMonth: r.lastMonth,
+    ...(typeof r.method === "string" ? { method: r.method } : {}),
   };
 }
 

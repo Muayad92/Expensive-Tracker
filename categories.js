@@ -74,7 +74,7 @@ const CATEGORY_ICON_CHOICES = [
   "glasses", "watch", "gem", "pill", "stethoscope", "dumbbell", "heart", "party-popper",
   "flower", "gift", "hand-heart", "landmark", "moon", "ticket", "gamepad-2", "music",
   "camera", "dice-5", "trophy", "dog", "cigarette", "banknote", "credit-card", "coins",
-  "sparkles", "star", "sun", "umbrella", "package",
+  "sparkles", "star", "sun", "umbrella", "package", "wallet",
 ];
 
 // المجموعات المعروضة: الأساسية، ثم مجموعات المستخدم، و"أخرى" دائماً في الآخر
@@ -176,4 +176,21 @@ function sortCategories(list) {
     .map((c, i) => ({ c, i }))
     .sort((a, b) => order(a.c) - order(b.c) || a.i - b.i)
     .map(({ c }) => c);
+}
+
+// ===== طرق الدفع =====
+
+// "كاش" لا يُحذف، وهو طريقة الدفع لكل مصروف لم تُحدَّد طريقته (مثل المصاريف القديمة)
+const CASH_ID = "cash";
+
+const DEFAULT_METHODS = [
+  { id: CASH_ID, name: "كاش", icon: "banknote" },
+  { id: "qi-card", name: "كي كارد", icon: "credit-card" },
+  { id: "zain-cash", name: "زين كاش", icon: "smartphone" },
+  { id: "bank-card", name: "بطاقة مصرفية", icon: "landmark" },
+];
+
+function sanitizeMethod(m) {
+  if (!m || typeof m.id !== "string" || typeof m.name !== "string" || !m.name.trim()) return null;
+  return { id: m.id, name: m.name.trim().slice(0, 30), icon: CATEGORY_ICON_CHOICES.includes(m.icon) ? m.icon : "wallet" };
 }
