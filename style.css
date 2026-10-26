@@ -2453,3 +2453,51 @@ button.with-icon {
 .warn-text {
   color: var(--warn);
 }
+
+/* ===== تصنيف ومجموعة جديدان ===== */
+
+.cat-chip.new-cat {
+  justify-content: center;
+  border-style: dashed;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.cat-tile.new-cat {
+  color: var(--primary);
+}
+
+.cat-tile.new-cat .cat-icon {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.swatch-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border);
+  padding: 0;
+}
+
+.swatch-btn.selected {
+  box-shadow: 0 0 0 2px var(--text);
+}
+
+.small-note {
+  list-style: none;
+  font-size: 13px;
+  padding: 4px 2px 8px;
+}
+
+#group-dialog form,
+#quick-category-dialog form {
+  gap: 12px;
+}

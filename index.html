@@ -332,6 +332,13 @@
       <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
     </div>
 
+    <!-- مجموعات أضافها المستخدم -->
+    <div class="list-head">
+      <h3 class="section-label">مجموعاتي</h3>
+      <button type="button" id="add-group" class="chip-btn"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> مجموعة</button>
+    </div>
+    <ul id="my-groups" class="category-list"></ul>
+
     <ul id="category-list" class="category-list"></ul>
 
     <form id="category-form" class="category-form">
@@ -348,6 +355,52 @@
       <div class="icon-picker" id="icon-picker"></div>
       <button type="submit" class="primary-btn" id="category-save">إضافة</button>
       <button type="button" class="link-btn dark" id="category-cancel" hidden>إلغاء التعديل</button>
+    </form>
+  </dialog>
+
+  <!-- تصنيف جديد من نافذة الإضافة: الاسم والمجموعة والأيقونة -->
+  <dialog id="quick-category-dialog" class="sheet">
+    <form id="quick-category-form">
+      <div class="sheet-header">
+        <h2>تصنيف جديد</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
+      </div>
+      <div class="category-form-row">
+        <span id="qc-preview" class="chosen-icon"></span>
+        <input type="text" id="qc-name" maxlength="30" required placeholder="اسم التصنيف، مثال: نادي رياضي">
+      </div>
+      <label>
+        المجموعة
+        <select id="qc-group"></select>
+      </label>
+      <span class="hint start">الأيقونة:</span>
+      <div id="qc-icons" class="icon-picker"></div>
+      <div class="sheet-actions">
+        <button type="submit" class="primary-btn">إضافة واختيار</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- مجموعة جديدة أو تعديلها: الاسم والأيقونة واللون -->
+  <dialog id="group-dialog" class="sheet">
+    <form id="group-form">
+      <div class="sheet-header">
+        <h2 id="group-form-title">مجموعة جديدة</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
+      </div>
+      <div class="category-form-row">
+        <span id="group-preview" class="chosen-icon"></span>
+        <input type="text" id="group-name" maxlength="30" required placeholder="اسم المجموعة، مثال: السفر">
+      </div>
+      <span class="hint start">اللون:</span>
+      <div id="group-colors" class="color-swatches"></div>
+      <p class="hint start">الألوان الثمانية مختارة لتبقى واضحة في القرص. إذا تشاركت مجموعتان لوناً، يميّزهما الاسم والنسبة.</p>
+      <span class="hint start">الأيقونة:</span>
+      <div id="group-icons" class="icon-picker"></div>
+      <div class="sheet-actions">
+        <button type="submit" class="primary-btn" id="group-save">إضافة</button>
+      </div>
+      <button type="button" id="group-delete" class="danger-btn" hidden>حذف هذه المجموعة</button>
     </form>
   </dialog>
 

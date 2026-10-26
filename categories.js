@@ -1,8 +1,8 @@
 // المجموعات والتصنيفات الافتراضية (ما يُصرف عليه فعلاً في البيت العراقي)
 // ونقل بيانات النسخ السابقة إليها. يُحمَّل قبل app.js
 
-// لون كل مجموعة ثابت: رقم من ألوان القرص (--series-1 ... --series-7) أو "rest" للرمادي
-const GROUPS = [
+// لون كل مجموعة ثابت: رقم من ألوان القرص (--series-1 ... --series-8) أو "rest" للرمادي
+const DEFAULT_GROUPS = [
   { id: "home", name: "البيت", icon: "house", color: 1 },
   { id: "food", name: "الأكل", icon: "utensils", color: 2 },
   { id: "transport", name: "النقل", icon: "car", color: 3 },
@@ -76,6 +76,36 @@ const CATEGORY_ICON_CHOICES = [
   "camera", "dice-5", "trophy", "dog", "cigarette", "banknote", "credit-card", "coins",
   "sparkles", "star", "sun", "umbrella", "package",
 ];
+
+// المجموعات المعروضة: الأساسية، ثم مجموعات المستخدم، و"أخرى" دائماً في الآخر
+let GROUPS = [...DEFAULT_GROUPS];
+
+// ألوان يختار منها المستخدم لمجموعته: الثمانية المختبرة والرمادي
+const GROUP_COLOR_CHOICES = [1, 2, 3, 4, 5, 6, 7, 8, "rest"];
+
+function applyCustomGroups(custom) {
+  const other = DEFAULT_GROUPS.filter((g) => g.id === "other");
+  GROUPS = [...DEFAULT_GROUPS.filter((g) => g.id !== "other"), ...custom, ...other];
+}
+
+// اللون الأقل استخداماً بين المجموعات، يُقترح للمجموعة الجديدة
+function suggestGroupColor() {
+  const counts = GROUP_COLOR_CHOICES.filter((c) => c !== "rest").map((c) => [c, GROUPS.filter((g) => g.color === c).length]);
+  counts.sort((a, b) => a[1] - b[1] || b[0] - a[0]);
+  return counts[0][0];
+}
+
+function sanitizeGroup(g) {
+  if (!g || typeof g.id !== "string" || typeof g.name !== "string" || !g.name.trim()) return null;
+  if (DEFAULT_GROUPS.some((d) => d.id === g.id)) return null;
+  return {
+    id: g.id,
+    name: g.name.trim().slice(0, 30),
+    icon: CATEGORY_ICON_CHOICES.includes(g.icon) ? g.icon : "tag",
+    color: GROUP_COLOR_CHOICES.includes(g.color) ? g.color : "rest",
+    custom: true,
+  };
+}
 
 function getGroup(id) {
   return GROUPS.find((g) => g.id === id) || GROUPS[GROUPS.length - 1];

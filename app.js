@@ -6,6 +6,9 @@ const LOANS_KEY = "loans";
 const SEASONS_KEY = "seasons";
 const BUDGETS_KEY = "budgets";
 const RECURRING_KEY = "recurring";
+const GROUPS_KEY = "groups";
+// خيار "+ مجموعة جديدة…" في قوائم المجموعات
+const NEW_GROUP_OPTION = "__new";
 
 // المجموعات والتصنيفات الافتراضية في ملف categories.js
 
@@ -84,12 +87,17 @@ function save() {
     if (seasons) localStorage.setItem(SEASONS_KEY, JSON.stringify(seasons));
     localStorage.setItem(BUDGETS_KEY, JSON.stringify(budgets));
     localStorage.setItem(RECURRING_KEY, JSON.stringify(recurring));
+    localStorage.setItem(GROUPS_KEY, JSON.stringify(customGroups));
   } catch {
     alert("تعذّر حفظ البيانات في المتصفح.");
   }
   // تُحدَّث صفحة السلفة والديون عند أي تغيير في البيانات
   document.dispatchEvent(new Event("data-changed"));
 }
+
+// مجموعات أضافها المستخدم (تُدمج مع الأساسية في categories.js)
+let customGroups = (load(GROUPS_KEY) || []).map(sanitizeGroup).filter(Boolean);
+applyCustomGroups(customGroups);
 
 let expenses = load(STORAGE_KEY) || [];
 let categories = load(CATEGORIES_KEY) || DEFAULT_CATEGORIES.map((c) => ({ ...c }));
@@ -145,10 +153,13 @@ if (migrated) save();
   }
 }
 
-// التصنيفات الثابتة (مثل "قسط سلفة") تُضاف لمن حدّث التطبيق
-for (const d of DEFAULT_CATEGORIES.filter((c) => c.system)) {
-  if (!categories.some((c) => c.id === d.id)) categories = sortCategories([...categories, { ...d }]);
+// التصنيفات الثابتة (مثل "قسط سلفة") تُضاف لمن حدّث التطبيق، وبعد استرجاع نسخة قديمة
+function ensureSystemCategories() {
+  for (const d of DEFAULT_CATEGORIES.filter((c) => c.system)) {
+    if (!categories.some((c) => c.id === d.id)) categories = sortCategories([...categories, { ...d }]);
+  }
 }
+ensureSystemCategories();
 
 // لون التصنيف هو لون مجموعته
 function categoryColor(id) {
@@ -510,16 +521,23 @@ function renderCategoryTotals(monthExpenses) {
     byGroup[cat.group] = (byGroup[cat.group] || 0) + e.amount;
   }
 
-  const groups = Object.entries(byGroup).sort((a, b) => b[1] - a[1]);
+  let groups = Object.entries(byGroup).sort((a, b) => b[1] - a[1]);
+  // أكثر من 8 مجموعات: الأكبر 7، والباقي جزء رمادي واحد حتى يبقى القرص مقروءاً
+  restGroupIds = new Set();
+  if (groups.length > PIE_MAX_GROUPS) {
+    const rest = groups.slice(PIE_MAX_GROUPS - 1);
+    rest.forEach(([id]) => restGroupIds.add(id));
+    groups = [...groups.slice(0, PIE_MAX_GROUPS - 1), [REST_GROUP, rest.reduce((s, [, sum]) => s + sum, 0)]];
+  }
   const percents = roundedPercents(groups.map(([, sum]) => sum), total);
   const slices = groups.map(([id, sum], i) => ({
     id,
     sum,
     percent: percents[i],
-    color: groupColor(id),
-    name: getGroup(id).name,
+    color: id === REST_GROUP ? "var(--series-rest)" : groupColor(id),
+    name: id === REST_GROUP ? "باقي المجموعات" : getGroup(id).name,
   }));
-  if (activeGroup && !byGroup[activeGroup]) activeGroup = null;
+  if (activeGroup && !groups.some(([id]) => id === activeGroup)) activeGroup = null;
 
   renderPie(slices, total);
   renderGroupLegend(slices);
@@ -535,6 +553,14 @@ const PIE_R0 = 60; // نصف القطر الداخلي (الفراغ في الو
 // الألوان الفاتحة تُكتب عليها النسبة بلون غامق حتى تُقرأ
 const LIGHT_SERIES = new Set(["var(--series-3)", "var(--series-4)", "var(--series-5)", "var(--series-rest)"]);
 let activeGroup = null;
+const PIE_MAX_GROUPS = 8;
+const REST_GROUP = "__rest";
+let restGroupIds = new Set();
+
+// هل ينتمي التصنيف للمجموعة المختارة في القرص (أو لـ"باقي المجموعات")
+function inActiveGroup(cat) {
+  return activeGroup === REST_GROUP ? restGroupIds.has(cat.group) : cat.group === activeGroup;
+}
 
 function svgEl(tag, attrs, text) {
   const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -650,12 +676,13 @@ function renderCategoryBreakdown(byCategory) {
   const ids = new Set([...Object.keys(byCategory), ...Object.keys(budgets.byCategory)]);
   const rows = [...ids]
     .map((id) => getCategory(id))
-    .filter((cat, i, arr) => arr.indexOf(cat) === i && (!activeGroup || cat.group === activeGroup))
+    .filter((cat, i, arr) => arr.indexOf(cat) === i && (!activeGroup || inActiveGroup(cat)))
     .map((cat) => ({ cat, sum: byCategory[cat.id] || 0 }))
     .filter(({ cat, sum }) => sum > 0 || budgets.byCategory[cat.id])
     .sort((a, b) => b.sum - a.sum);
 
-  $("breakdown-title").textContent = activeGroup ? `تصنيفات ${getGroup(activeGroup).name}` : "حسب التصنيف";
+  const activeName = activeGroup === REST_GROUP ? "باقي المجموعات" : activeGroup && getGroup(activeGroup).name;
+  $("breakdown-title").textContent = activeGroup ? `تصنيفات ${activeName}` : "حسب التصنيف";
   if (rows.length === 0) {
     categoryTotalsEl.appendChild(el("li", "muted", "لا توجد مصاريف في هذا الشهر."));
     return;
@@ -748,7 +775,8 @@ document.addEventListener("keydown", (event) => {
 
 // ===== نافذة الإضافة: اختيار التصنيف =====
 
-const QUICK_CATEGORY_COUNT = 6;
+// 5 تصنيفات + زر "تصنيف جديد" = صفّان من 3
+const QUICK_CATEGORY_COUNT = 5;
 const QUICK_CATEGORY_DAYS = 90;
 // قبل أن يتجمع تاريخ استخدام كافٍ: أكثر ما يُصرف عليه يومياً
 const STARTER_CATEGORIES = ["groceries", "bread", "fuel", "taxi", "cafe", "mobile-credit"];
@@ -795,7 +823,10 @@ function renderCategoryPicker() {
     top.unshift(selected);
     top.pop();
   }
-  $("top-categories").replaceChildren(...top.map((cat) => categoryButton(cat, "cat-chip")));
+  const newChip = iconText("button", "plus", "تصنيف جديد", "cat-chip new-cat");
+  newChip.type = "button";
+  newChip.addEventListener("click", openQuickCategory);
+  $("top-categories").replaceChildren(...top.map((cat) => categoryButton(cat, "cat-chip")), newChip);
 
   const tabs = $("group-tabs");
   tabs.innerHTML = "";
@@ -812,7 +843,13 @@ function renderCategoryPicker() {
     tabs.appendChild(tab);
   }
   const inGroup = categories.filter((c) => c.group === pickerGroup && !c.system && (!c.hidden || c === selected));
-  $("category-grid").replaceChildren(...inGroup.map((cat) => categoryButton(cat, "cat-tile")));
+  const newTile = el("button", "cat-tile new-cat");
+  newTile.type = "button";
+  const plus = el("span", "cat-icon big");
+  plus.appendChild(icon("plus"));
+  newTile.append(plus, el("span", "", "تصنيف جديد"));
+  newTile.addEventListener("click", openQuickCategory);
+  $("category-grid").replaceChildren(...inGroup.map((cat) => categoryButton(cat, "cat-tile")), newTile);
 }
 
 function selectCategory(id) {
@@ -963,6 +1000,7 @@ searchInput.addEventListener("input", render);
 // ===== إدارة التصنيفات =====
 
 function renderCategoryList() {
+  renderMyGroups();
   categoryListEl.innerHTML = "";
   for (const group of GROUPS) {
     const inGroup = categories.filter((c) => c.group === group.id);
@@ -1016,15 +1054,8 @@ function renderCategoryList() {
 
 const categoryGroupInput = $("category-group");
 
-function fillGroupSelect() {
-  categoryGroupInput.innerHTML = "";
-  for (const group of GROUPS) {
-    const option = el("option", "", group.name);
-    option.value = group.id;
-    categoryGroupInput.appendChild(option);
-  }
-}
-fillGroupSelect();
+fillGroupOptions(categoryGroupInput, "other");
+watchNewGroupOption(categoryGroupInput, updateChosenIcon);
 
 function updateChosenIcon() {
   chosenIconEl.replaceChildren(catBadge({ icon: chosenIcon, group: categoryGroupInput.value }, "big"));
@@ -1047,11 +1078,11 @@ function renderIconPicker() {
   updateChosenIcon();
 }
 
-categoryGroupInput.addEventListener("change", updateChosenIcon);
 
 function resetCategoryForm() {
   editingCategoryId = null;
   chosenIcon = "tag";
+  fillGroupOptions(categoryGroupInput, "other");
   categoryGroupInput.value = "other";
   categoryNameInput.value = "";
   categoryFormTitle.textContent = "إضافة تصنيف جديد";
@@ -1063,6 +1094,7 @@ function resetCategoryForm() {
 function startEditCategory(cat) {
   editingCategoryId = cat.id;
   chosenIcon = cat.icon || "tag";
+  fillGroupOptions(categoryGroupInput, cat.group);
   categoryGroupInput.value = cat.group;
   categoryNameInput.value = cat.name;
   categoryFormTitle.textContent = `تعديل تصنيف "${cat.name}"`;
@@ -1121,6 +1153,222 @@ $("manage-categories").addEventListener("click", () => {
   resetCategoryForm();
   renderCategoryList();
   categoriesDialog.showModal();
+});
+
+// ===== مجموعات المستخدم، وإضافة تصنيف من نافذة الإضافة =====
+
+// قائمة المجموعات في أي نموذج، وفي آخرها "+ مجموعة جديدة…"
+function fillGroupOptions(select, selectedId) {
+  select.innerHTML = "";
+  for (const group of GROUPS) {
+    const option = el("option", "", group.name);
+    option.value = group.id;
+    select.appendChild(option);
+  }
+  const add = el("option", "", "+ مجموعة جديدة…");
+  add.value = NEW_GROUP_OPTION;
+  select.appendChild(add);
+  select.value = GROUPS.some((g) => g.id === selectedId) ? selectedId : "other";
+  select.dataset.previous = select.value;
+}
+
+// اختيار "+ مجموعة جديدة…" يفتح نافذة المجموعة، ثم يختار المجموعة الجديدة
+function watchNewGroupOption(select, onChange) {
+  select.addEventListener("change", () => {
+    if (select.value !== NEW_GROUP_OPTION) {
+      select.dataset.previous = select.value;
+      onChange();
+      return;
+    }
+    select.value = select.dataset.previous;
+    openGroupDialog(null, (group) => {
+      fillGroupOptions(select, group.id);
+      onChange();
+    });
+  });
+}
+
+// شبكة أيقونات يختار منها المستخدم
+function buildIconPicker(container, selected, onPick) {
+  container.innerHTML = "";
+  for (const name of CATEGORY_ICON_CHOICES) {
+    const btn = el("button", name === selected ? "icon-choice selected" : "icon-choice");
+    btn.type = "button";
+    btn.setAttribute("aria-label", name);
+    btn.appendChild(icon(name));
+    btn.addEventListener("click", () => {
+      for (const other of container.querySelectorAll(".selected")) other.classList.remove("selected");
+      btn.classList.add("selected");
+      onPick(name);
+    });
+    container.appendChild(btn);
+  }
+}
+
+// --- نافذة المجموعة ---
+
+const groupDialog = $("group-dialog");
+let editingGroup = null;
+let groupDone = null;
+let groupIcon = "tag";
+let groupColorChoice = 1;
+
+function updateGroupPreview() {
+  $("group-preview").replaceChildren(catBadge({ icon: groupIcon, group: "__preview" }, "big"));
+  $("group-preview").firstChild.style.setProperty("--c", groupColorChoice === "rest" ? "var(--series-rest)" : `var(--series-${groupColorChoice})`);
+}
+
+function renderGroupColors() {
+  const box = $("group-colors");
+  box.innerHTML = "";
+  for (const color of GROUP_COLOR_CHOICES) {
+    const btn = el("button", color === groupColorChoice ? "swatch-btn selected" : "swatch-btn");
+    btn.type = "button";
+    btn.style.background = color === "rest" ? "var(--series-rest)" : `var(--series-${color})`;
+    // اسم المجموعات التي تستخدم هذا اللون، حتى يعرف المستخدم إن كان سيتكرر
+    const users = GROUPS.filter((g) => g.color === color && g !== editingGroup).map((g) => g.name);
+    btn.setAttribute("aria-label", users.length ? `لون ${users.join("، ")}` : "لون غير مستخدم");
+    btn.title = users.length ? users.join("، ") : "غير مستخدم";
+    btn.addEventListener("click", () => {
+      groupColorChoice = color;
+      renderGroupColors();
+      updateGroupPreview();
+    });
+    box.appendChild(btn);
+  }
+}
+
+function openGroupDialog(group, onDone) {
+  editingGroup = group;
+  groupDone = onDone || null;
+  groupIcon = group ? group.icon : "tag";
+  groupColorChoice = group ? group.color : suggestGroupColor();
+  $("group-form-title").textContent = group ? "تعديل مجموعة" : "مجموعة جديدة";
+  $("group-save").textContent = group ? "حفظ" : "إضافة";
+  $("group-delete").hidden = !group;
+  $("group-name").value = group ? group.name : "";
+  buildIconPicker($("group-icons"), groupIcon, (name) => {
+    groupIcon = name;
+    updateGroupPreview();
+  });
+  renderGroupColors();
+  updateGroupPreview();
+  groupDialog.showModal();
+}
+
+$("group-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = $("group-name").value.trim();
+  if (!name) return;
+  const duplicate = GROUPS.find((g) => normalize(g.name) === normalize(name) && g !== editingGroup);
+  if (duplicate) {
+    alert(`توجد مجموعة بهذا الاسم: ${duplicate.name}`);
+    return;
+  }
+  let group = editingGroup;
+  if (group) Object.assign(group, { name, icon: groupIcon, color: groupColorChoice });
+  else {
+    group = { id: newId(), name, icon: groupIcon, color: groupColorChoice, custom: true };
+    customGroups.push(group);
+  }
+  applyCustomGroups(customGroups);
+  categories = sortCategories(categories);
+  save();
+  groupDialog.close();
+  if (groupDone) groupDone(group);
+  if (categoriesDialog.open) renderCategoryList();
+  render();
+});
+
+$("group-delete").addEventListener("click", () => {
+  const group = editingGroup;
+  const count = categories.filter((c) => c.group === group.id).length;
+  const message = count
+    ? `حذف مجموعة "${group.name}"؟\nتنتقل تصنيفاتها (${count}) إلى مجموعة "أخرى"، ولا يُحذف أي مصروف.`
+    : `حذف مجموعة "${group.name}"؟`;
+  if (!confirm(message)) return;
+  for (const cat of categories) {
+    if (cat.group === group.id) cat.group = "other";
+  }
+  customGroups = customGroups.filter((g) => g !== group);
+  applyCustomGroups(customGroups);
+  categories = sortCategories(categories);
+  save();
+  groupDialog.close();
+  if (categoriesDialog.open) {
+    resetCategoryForm();
+    renderCategoryList();
+  }
+  render();
+});
+
+// "مجموعاتي" في نافذة التصنيفات
+function renderMyGroups() {
+  const list = $("my-groups");
+  list.innerHTML = "";
+  if (customGroups.length === 0) {
+    list.appendChild(el("li", "muted small-note", "لم تُضف مجموعات بعد."));
+    return;
+  }
+  for (const group of customGroups) {
+    const li = el("li", "category-row");
+    const badge = catBadge({ icon: group.icon, group: group.id }, "sm");
+    const count = categories.filter((c) => c.group === group.id).length;
+    const info = el("span", "category-row-name");
+    info.append(group.name, el("small", "category-count", `${count} تصنيف`));
+    const edit = el("button", "small-btn", "تعديل");
+    edit.type = "button";
+    edit.addEventListener("click", () => openGroupDialog(group));
+    li.append(badge, info, edit);
+    list.appendChild(li);
+  }
+}
+
+$("add-group").addEventListener("click", () => openGroupDialog(null));
+
+// --- تصنيف جديد من نافذة الإضافة ---
+
+const quickCategoryDialog = $("quick-category-dialog");
+const qcGroup = $("qc-group");
+let qcIcon = "tag";
+
+function updateQuickPreview() {
+  $("qc-preview").replaceChildren(catBadge({ icon: qcIcon, group: qcGroup.value }, "big"));
+}
+
+function openQuickCategory() {
+  qcIcon = "tag";
+  $("qc-name").value = "";
+  fillGroupOptions(qcGroup, pickerGroup && pickerGroup !== "savings" ? pickerGroup : "other");
+  buildIconPicker($("qc-icons"), qcIcon, (name) => {
+    qcIcon = name;
+    updateQuickPreview();
+  });
+  updateQuickPreview();
+  quickCategoryDialog.showModal();
+  $("qc-name").focus();
+}
+
+watchNewGroupOption(qcGroup, updateQuickPreview);
+
+$("quick-category-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = $("qc-name").value.trim();
+  if (!name) return;
+  // اسم موجود: نختار التصنيف الموجود بدل تكراره
+  const existing = categories.find((c) => normalize(c.name) === normalize(name));
+  let cat = existing;
+  if (existing) {
+    existing.hidden = false;
+    showToast(`"${existing.name}" موجود، فاخترناه`);
+  } else {
+    cat = { id: newId(), name, icon: qcIcon, group: qcGroup.value };
+    categories = sortCategories([...categories, cat]);
+    showToast(`أُضيف تصنيف "${name}"`);
+  }
+  save();
+  quickCategoryDialog.close();
+  selectCategory(cat.id);
 });
 
 // ===== المبالغ بساعات العمل =====
@@ -1425,6 +1673,7 @@ async function exportBackup() {
     seasons,
     budgets,
     recurring,
+    groups: customGroups,
   };
   const saved = await deliverFile(
     JSON.stringify(backup, null, 2),
@@ -1471,6 +1720,8 @@ function parseBackup(text) {
     throw new Error("هذا الملف ليس نسخة احتياطية من تطبيق مصاريفي.");
   }
 
+  const backupGroups = Array.isArray(data.groups) ? data.groups.map(sanitizeGroup).filter(Boolean) : null;
+  const backupGroupIds = new Set((backupGroups || []).map((g) => g.id));
   const cats = [];
   for (const c of data.categories) {
     if (!c || typeof c.id !== "string" || typeof c.name !== "string" || !c.name.trim()) continue;
@@ -1480,7 +1731,7 @@ function parseBackup(text) {
       name: c.name.trim().slice(0, 30),
       // نسخة قديمة: الأيقونة رمز تعبيري والمجموعة غير موجودة، فينقلها migrateToGroups في الأسفل
       icon: CATEGORY_ICON_CHOICES.includes(c.icon) || DEFAULT_CATEGORIES.some((d) => d.icon === c.icon) ? c.icon : "tag",
-      ...(GROUPS.some((g) => g.id === c.group) ? { group: c.group } : {}),
+      ...(GROUPS.some((g) => g.id === c.group) || backupGroupIds.has(c.group) ? { group: c.group } : {}),
     });
   }
 
@@ -1516,6 +1767,7 @@ function parseBackup(text) {
     loans: cleanList(data.loans, sanitizeLoan),
     seasons: cleanList(data.seasons, sanitizeSeason),
     budgets: sanitizeBudgets(data.budgets),
+    groups: backupGroups,
     recurring: cleanList(data.recurring, sanitizeRecurring),
     skipped,
     exportedAt: data.exportedAt,
@@ -1594,6 +1846,11 @@ function mergeImport(backup) {
   for (const season of backup.seasons || []) {
     if (!seasons.some((x) => x.id === season.id)) seasons.push(season);
   }
+  // المجموعات: تُضاف غير الموجودة
+  for (const g of backup.groups || []) {
+    if (!customGroups.some((x) => x.id === g.id)) customGroups.push(g);
+  }
+  applyCustomGroups(customGroups);
   // المصاريف الثابتة: تُضاف غير الموجودة، والميزانية تؤخذ من النسخة فقط إذا لم تضع ميزانية بعد
   for (const r of backup.recurring || []) {
     if (!recurring.some((x) => x.id === r.id)) recurring.push({ ...r, categoryId: idMap[r.categoryId] || OTHER_ID });
@@ -1610,8 +1867,13 @@ function mergeImport(backup) {
 }
 
 function replaceWithImport(backup) {
-  categories = backup.categories.map((c) => ({ ...c }));
+  if (backup.groups) {
+    customGroups = backup.groups;
+    applyCustomGroups(customGroups);
+  }
+  categories = backup.categories.map((c) => ({ ...c, group: GROUPS.some((g) => g.id === c.group) ? c.group : "other" }));
   ensureOtherCategory();
+  ensureSystemCategories();
   const ids = new Set(categories.map((c) => c.id));
   expenses = backup.expenses.map((e) => ({ ...e, categoryId: ids.has(e.categoryId) ? e.categoryId : OTHER_ID }));
   if (backup.jamiyas) jamiyas = backup.jamiyas;
@@ -1680,7 +1942,7 @@ function setupDialog(dialog) {
   });
 }
 
-[expenseDialog, categoriesDialog, importDialog, workDialog].forEach(setupDialog);
+[expenseDialog, categoriesDialog, importDialog, workDialog, groupDialog, quickCategoryDialog].forEach(setupDialog);
 
 // ===== إخفاء المبالغ =====
 
