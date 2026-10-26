@@ -48,6 +48,16 @@
       <!-- صافي الشهر: الدخل − المصاريف -->
       <section id="net-card" class="card net-card" hidden></section>
 
+      <!-- ملخص الشهر الماضي: يظهر أول أسبوع من الشهر -->
+      <section id="month-report" class="card report-card" hidden>
+        <div class="card-head">
+          <h2 class="card-title" id="month-report-title">ملخص الشهر</h2>
+          <button type="button" id="month-report-close" class="icon-btn" aria-label="إخفاء الملخص"><svg class="ic sm"><use href="icons/sprite.svg#i-x"/></svg></button>
+        </div>
+        <div id="month-report-body"></div>
+        <button type="button" id="month-report-more" class="link-btn">كل الأشهر</button>
+      </section>
+
       <!-- الميزانية -->
       <section id="budget-summary" class="card budget-card" hidden></section>
 
@@ -205,6 +215,11 @@
     <main class="container">
       <h2 class="section-label">الإعدادات</h2>
       <div class="card menu">
+        <button type="button" id="open-reports" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-chart-column"/></svg></span>
+          <span class="menu-text"><b>ملخص الأشهر</b><small>كم صرفت وكم ادّخرت كل شهر</small></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
         <button type="button" id="manage-categories" class="menu-row">
           <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-tags"/></svg></span>
           <span class="menu-text"><b>التصنيفات</b></span>
@@ -459,6 +474,20 @@
     </div>
     <ul id="methods-list" class="category-list"></ul>
     <button type="button" id="add-method" class="action-btn with-icon"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> طريقة دفع جديدة</button>
+  </dialog>
+
+  <!-- نافذة ملخص الأشهر -->
+  <dialog id="report-dialog" class="sheet">
+    <div class="sheet-header">
+      <h2>ملخص الأشهر</h2>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
+    </div>
+    <div class="month-nav report-nav">
+      <button type="button" id="report-prev" class="round-btn" aria-label="الشهر السابق"><svg class="ic"><use href="icons/sprite.svg#i-chevron-right"/></svg></button>
+      <span id="report-month" class="month-name"></span>
+      <button type="button" id="report-next" class="round-btn" aria-label="الشهر التالي"><svg class="ic"><use href="icons/sprite.svg#i-chevron-left"/></svg></button>
+    </div>
+    <div id="report-body" class="report-body"></div>
   </dialog>
 
   <!-- نافذة هدف الادخار -->
@@ -772,6 +801,7 @@
   <script src="goals.js"></script>
   <script src="seasons.js"></script>
   <script src="planning.js"></script>
+  <script src="summary.js"></script>
   <script src="onboarding.js"></script>
 </body>
 </html>
