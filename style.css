@@ -2557,3 +2557,53 @@ button.with-icon {
 .filter-chip.with-icon {
   display: inline-flex;
 }
+
+/* ===== الدخل وصافي الشهر ===== */
+
+.mode-switch {
+  margin-top: -4px;
+}
+
+.cat-icon.income {
+  --c: var(--good);
+}
+
+.income-amount {
+  color: var(--good);
+}
+
+.net-card.setup {
+  border: 1px dashed var(--primary);
+  padding: 4px;
+}
+
+.net-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+
+.net-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.net-cell strong {
+  font-size: 15px;
+}
+
+.net-note {
+  justify-content: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--surface-2);
+  font-size: 13.5px;
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
+.badge:empty {
+  display: none;
+}

@@ -194,3 +194,17 @@ function sanitizeMethod(m) {
   if (!m || typeof m.id !== "string" || typeof m.name !== "string" || !m.name.trim()) return null;
   return { id: m.id, name: m.name.trim().slice(0, 30), icon: CATEGORY_ICON_CHOICES.includes(m.icon) ? m.icon : "wallet" };
 }
+
+// ===== أنواع الدخل =====
+
+const INCOME_TYPES = [
+  { id: "salary", name: "راتب", icon: "briefcase" },
+  { id: "extra", name: "عمل إضافي", icon: "hammer" },
+  { id: "rent-in", name: "إيجار أستلمه", icon: "key-round" },
+  { id: "gift-in", name: "هدية", icon: "gift" },
+  { id: "other-in", name: "دخل آخر", icon: "coins" },
+];
+
+function getIncomeType(id) {
+  return INCOME_TYPES.find((t) => t.id === id) || INCOME_TYPES[INCOME_TYPES.length - 1];
+}

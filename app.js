@@ -8,6 +8,7 @@ const BUDGETS_KEY = "budgets";
 const RECURRING_KEY = "recurring";
 const GROUPS_KEY = "groups";
 const METHODS_KEY = "methods";
+const INCOMES_KEY = "incomes";
 const LAST_METHOD_KEY = "lastMethod";
 // خيار "+ مجموعة جديدة…" في قوائم المجموعات
 const NEW_GROUP_OPTION = "__new";
@@ -91,6 +92,7 @@ function save() {
     localStorage.setItem(RECURRING_KEY, JSON.stringify(recurring));
     localStorage.setItem(GROUPS_KEY, JSON.stringify(customGroups));
     localStorage.setItem(METHODS_KEY, JSON.stringify(methods));
+    localStorage.setItem(INCOMES_KEY, JSON.stringify(incomes));
   } catch {
     alert("تعذّر حفظ البيانات في المتصفح.");
   }
@@ -107,6 +109,8 @@ let methods = (load(METHODS_KEY) || DEFAULT_METHODS).map(sanitizeMethod).filter(
 if (!methods.some((m) => m.id === CASH_ID)) methods.unshift({ ...DEFAULT_METHODS[0] });
 
 let expenses = load(STORAGE_KEY) || [];
+// الدخل: { id, amount, type: نوع الدخل, date, note, method, recurringId? } (منفصل عن المصاريف)
+let incomes = load(INCOMES_KEY) || [];
 let categories = load(CATEGORIES_KEY) || DEFAULT_CATEGORIES.map((c) => ({ ...c }));
 // السلف (الادخار الجماعي) والديون (طريقة عرضها وتعديلها في ملف jamiya-loans.js)
 let jamiyas = load(JAMIYAS_KEY) || [];
@@ -212,7 +216,7 @@ function newId() {
 }
 
 function nextExpenseId() {
-  return Math.max(Date.now(), ...expenses.map((e) => e.id + 1));
+  return Math.max(Date.now(), ...expenses.map((e) => e.id + 1), ...incomes.map((i) => i.id + 1));
 }
 
 function getCategory(id) {
@@ -329,6 +333,7 @@ function render() {
   }
   setupWorkBtn.hidden = Boolean(work) || expenses.length === 0;
 
+  renderNetCard(monthExpenses);
   renderBudgetSummary(monthExpenses);
   renderQuickAdd();
   renderRegretAsk();
@@ -336,19 +341,22 @@ function render() {
   renderMethodTotals(monthExpenses);
   renderRegretStats(monthExpenses);
 
-  // القائمة: نتائج البحث من كل الأشهر، أو مصاريف الشهر المختار
+  // القائمة: نتائج البحث من كل الأشهر، أو مصاريف الشهر المختار (ومعها الدخل)
   let shown;
+  let shownIncomes;
   if (query) {
     shown = expenses.filter((e) => {
       const cat = getCategory(e.categoryId);
       return [e.note || "", cat.name, getGroup(cat.group).name].some((t) => normalize(t).includes(query));
     });
+    shownIncomes = incomes.filter((i) => [i.note || "", getIncomeType(i.type).name, "دخل"].some((t) => normalize(t).includes(query)));
     listTitleEl.textContent = "نتائج البحث";
     searchSummaryEl.hidden = false;
     searchSummaryEl.textContent = `${shown.length} نتيجة · المجموع ${formatMoney(shown.reduce((s, e) => s + e.amount, 0))}`;
     emptyEl.textContent = "لا توجد نتائج.";
   } else {
     shown = monthExpenses;
+    shownIncomes = incomes.filter((i) => i.date.startsWith(viewMonth));
     listTitleEl.textContent = `مصاريف ${monthLabel(viewMonth)}`;
     searchSummaryEl.hidden = true;
     emptyEl.innerHTML = expenses.length
@@ -356,35 +364,76 @@ function render() {
       : "لا توجد مصاريف بعد.<br>اضغط زر <strong>+</strong> لإضافة أول مصروف.";
   }
 
-  // أزرار التصفية: "الكل" والمجموعات الموجودة في القائمة
+  // أزرار التصفية: "الكل" والمجموعات الموجودة في القائمة و"الدخل"
   const presentGroups = new Set(shown.map((e) => getCategory(e.categoryId).group));
-  if (listGroup && !presentGroups.has(listGroup)) listGroup = null;
-  renderGroupFilter(presentGroups);
-  if (listGroup) shown = shown.filter((e) => getCategory(e.categoryId).group === listGroup);
-  const presentMethods = new Set(shown.map((e) => e.method || CASH_ID));
+  if (listGroup === INCOME_FILTER ? shownIncomes.length === 0 : listGroup && !presentGroups.has(listGroup)) listGroup = null;
+  renderGroupFilter(presentGroups, shownIncomes.length > 0);
+  if (listGroup === INCOME_FILTER) shown = [];
+  else if (listGroup) {
+    shown = shown.filter((e) => getCategory(e.categoryId).group === listGroup);
+    shownIncomes = [];
+  }
+  const presentMethods = new Set([...shown, ...shownIncomes].map((e) => e.method || CASH_ID));
   if (listMethod && !presentMethods.has(listMethod)) listMethod = null;
   renderMethodFilter(presentMethods);
-  if (listMethod) shown = shown.filter((e) => (e.method || CASH_ID) === listMethod);
+  if (listMethod) {
+    shown = shown.filter((e) => (e.method || CASH_ID) === listMethod);
+    shownIncomes = shownIncomes.filter((i) => (i.method || CASH_ID) === listMethod);
+  }
 
-  shown.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+  const rows = [...shown.map((e) => ({ income: false, item: e })), ...shownIncomes.map((i) => ({ income: true, item: i }))];
+  rows.sort((a, b) => b.item.date.localeCompare(a.item.date) || b.item.id - a.item.id);
   listEl.innerHTML = "";
-  // مجمّعة حسب الأيام، ولكل يوم مجموعه
+  // مجمّعة حسب الأيام، ولكل يوم مجموع مصاريفه
   let dayList = null;
   let lastDate = null;
-  for (const exp of shown) {
-    if (exp.date !== lastDate) {
-      lastDate = exp.date;
-      const dayTotal = shown.filter((e) => e.date === exp.date).reduce((s, e) => s + e.amount, 0);
+  for (const row of rows) {
+    const date = row.item.date;
+    if (date !== lastDate) {
+      lastDate = date;
+      const dayTotal = shown.filter((e) => e.date === date).reduce((s, e) => s + e.amount, 0);
       const head = el("div", "day-head");
-      head.append(el("span", "", dayLabel(exp.date, Boolean(query))), el("b", "money", fmtNum(dayTotal)));
+      head.append(el("span", "", dayLabel(date, Boolean(query))), el("b", "money", dayTotal ? fmtNum(dayTotal) : ""));
       dayList = el("ul", "card expense-day");
       listEl.append(head, dayList);
     }
-    dayList.appendChild(renderExpense(exp));
+    dayList.appendChild(row.income ? renderIncome(row.item) : renderExpense(row.item));
   }
 
-  emptyEl.hidden = shown.length > 0;
-  editHintEl.hidden = shown.length === 0;
+  emptyEl.hidden = rows.length > 0;
+  editHintEl.hidden = rows.length === 0;
+}
+
+const INCOME_FILTER = "__income";
+
+// سطر الدخل: بالأخضر وبإشارة +
+function renderIncome(inc) {
+  const type = getIncomeType(inc.type);
+  const item = el("li", "expense-item income-item");
+  const back = el("div", "swipe-back");
+  back.append(icon("trash-2"), icon("trash-2"));
+  const row = el("div", "expense-row");
+  row.tabIndex = 0;
+  row.setAttribute("role", "button");
+  row.addEventListener("click", () => {
+    if (!item.dataset.swiped) openForm(inc, "income");
+  });
+  row.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") openForm(inc, "income");
+    if (event.key === "Delete") deleteIncome(inc.id);
+  });
+  const badge = el("span", "cat-icon income");
+  badge.appendChild(icon(type.icon));
+  const info = el("div", "expense-info");
+  const title = el("div", "expense-category", type.name);
+  title.appendChild(el("span", "tag good", "دخل"));
+  if (inc.recurringId) title.appendChild(el("span", "tag", "ثابت"));
+  info.appendChild(title);
+  if (inc.note) info.appendChild(el("div", "expense-meta", inc.note));
+  row.append(badge, info, el("div", "expense-amount income-amount", `+${fmtNum(inc.amount)}`));
+  item.append(back, row);
+  enableSwipe(item, row, () => deleteIncome(inc.id));
+  return item;
 }
 
 let listGroup = null;
@@ -406,11 +455,11 @@ function renderMethodFilter(presentMethods) {
   }
 }
 
-function renderGroupFilter(presentGroups) {
+function renderGroupFilter(presentGroups, hasIncome) {
   const box = $("group-filter");
   box.innerHTML = "";
-  // لا داعي للتصفية إذا كانت المصاريف كلها من مجموعة واحدة
-  box.hidden = presentGroups.size < 2;
+  // لا داعي للتصفية إذا كانت القائمة كلها من نوع واحد
+  box.hidden = presentGroups.size + (hasIncome ? 1 : 0) < 2;
   const chip = (id, name) => {
     const btn = el("button", (listGroup || null) === id ? "filter-chip active" : "filter-chip", name);
     btn.type = "button";
@@ -421,6 +470,7 @@ function renderGroupFilter(presentGroups) {
     return btn;
   };
   box.appendChild(chip(null, "الكل"));
+  if (hasIncome) box.appendChild(chip(INCOME_FILTER, "الدخل"));
   for (const group of GROUPS) {
     if (presentGroups.has(group.id)) box.appendChild(chip(group.id, group.name));
   }
@@ -1029,19 +1079,20 @@ function renderMethodTotals(monthExpenses) {
 
 // ===== إضافة وتعديل وحذف المصاريف =====
 
-function openForm(exp) {
+// mode: "expense" أو "income". عند تعديل دخل يكون exp هو الدخل نفسه
+function openForm(exp, mode = "expense") {
   form.reset();
   editingId = exp ? exp.id : null;
-  formTitle.textContent = exp ? "تعديل مصروف" : "مصروف جديد";
   deleteInFormBtn.hidden = !exp;
+  incomeType = exp && mode === "income" ? exp.type : INCOME_TYPES[0].id;
   // التقييم يظهر عند التعديل فقط، حتى تبقى الإضافة سريعة
   worthField.hidden = !exp;
   // التكرار الشهري يُختار عند الإضافة فقط
   $("recurring-row").hidden = Boolean(exp);
 
   amountExpr = exp ? String(exp.amount) : "";
-  categoryInput.value = exp ? getCategory(exp.categoryId).id : "";
-  pickerGroup = exp ? getCategory(exp.categoryId).group : GROUPS[0].id;
+  categoryInput.value = exp && mode === "expense" ? getCategory(exp.categoryId).id : "";
+  pickerGroup = exp && mode === "expense" ? getCategory(exp.categoryId).group : GROUPS[0].id;
   $("all-categories").hidden = true;
   $("show-all-cats").classList.remove("open");
 
@@ -1049,7 +1100,7 @@ function openForm(exp) {
     dateInput.value = exp.date;
     noteInput.value = exp.note || "";
     const worth = exp.worth === "yes" || exp.worth === "no" ? exp.worth : "";
-    form.querySelector(`input[name="worth"][value="${worth}"]`).checked = true;
+    if (mode === "expense") form.querySelector(`input[name="worth"][value="${worth}"]`).checked = true;
   } else {
     // عند إضافة مصروف لشهر سابق، نقترح أول يوم من ذلك الشهر
     const today = todayString();
@@ -1060,15 +1111,71 @@ function openForm(exp) {
   renderMethodChips();
   updateAmountDisplay();
   renderCategoryPicker();
+  renderIncomeTypes();
+  setFormMode(mode, Boolean(exp));
   expenseDialog.showModal();
   // لا نضع التركيز على أي خانة حتى لا تظهر لوحة مفاتيح الجوال فوق لوحة الأرقام
   document.activeElement?.blur();
 }
 
+let formMode = "expense";
+let incomeType = INCOME_TYPES[0].id;
+
+function setFormMode(mode, editing) {
+  formMode = mode;
+  const income = mode === "income";
+  form.querySelector(`input[name="entry-mode"][value="${mode}"]`).checked = true;
+  // عند التعديل لا يتحول المصروف إلى دخل أو العكس
+  $("mode-switch").hidden = editing;
+  $("form-title").textContent = editing ? (income ? "تعديل دخل" : "تعديل مصروف") : income ? "دخل جديد" : "مصروف جديد";
+  $("category-picker").hidden = income;
+  $("income-picker").hidden = !income;
+  $("method-label").textContent = income ? "استلمته عبر" : "طريقة الدفع";
+  worthField.hidden = income || !editing;
+  deleteInFormBtn.textContent = income ? "حذف هذا الدخل" : "حذف هذا المصروف";
+  form.classList.toggle("income-mode", income);
+  updateAmountHours();
+}
+
+for (const radio of form.querySelectorAll('input[name="entry-mode"]')) {
+  radio.addEventListener("change", () => setFormMode(radio.value, false));
+}
+
+function renderIncomeTypes() {
+  const box = $("income-types");
+  box.innerHTML = "";
+  for (const t of INCOME_TYPES) {
+    const btn = el("button", t.id === incomeType ? "cat-chip selected" : "cat-chip");
+    btn.type = "button";
+    const badge = el("span", "cat-icon sm income");
+    badge.appendChild(icon(t.icon, "sm"));
+    btn.append(badge, el("span", "", t.name));
+    btn.addEventListener("click", () => {
+      incomeType = t.id;
+      renderIncomeTypes();
+    });
+    box.appendChild(btn);
+  }
+}
+
+function deleteIncome(id) {
+  const index = incomes.findIndex((i) => i.id === id);
+  if (index === -1) return false;
+  const [removed] = incomes.splice(index, 1);
+  save();
+  render();
+  showToast(`حُذف دخل ${getIncomeType(removed.type).name} ${formatMoney(removed.amount)}`, () => {
+    incomes.splice(Math.min(index, incomes.length), 0, removed);
+    save();
+    render();
+  });
+  return true;
+}
+
 // "= ساعتان عمل" تحت المبلغ أثناء الكتابة
 function updateAmountHours() {
   const amount = Number(amountInput.value);
-  amountHoursEl.hidden = !work || !(amount > 0);
+  amountHoursEl.hidden = !work || !(amount > 0) || formMode === "income";
   if (!amountHoursEl.hidden) amountHoursEl.textContent = `= ${workTime(amount)}`;
 }
 
@@ -1099,6 +1206,10 @@ form.addEventListener("submit", (event) => {
   const amount = Number(amountInput.value);
   if (!(amount > 0)) {
     showToast("اكتب المبلغ أولاً");
+    return;
+  }
+  if (formMode === "income") {
+    saveIncome(amount);
     return;
   }
   if (!categoryInput.value) {
@@ -1140,8 +1251,25 @@ form.addEventListener("submit", (event) => {
   if (editingId === null) notifyBudget(data);
 });
 
+function saveIncome(amount) {
+  const data = { amount, type: incomeType, date: dateInput.value, note: noteInput.value.trim(), method: chosenMethod };
+  if (editingId !== null) {
+    Object.assign(incomes.find((i) => i.id === editingId), data);
+  } else {
+    const income = { id: nextExpenseId(), ...data };
+    if ($("recurring").checked) income.recurringId = createRecurring(data, "income");
+    incomes.push(income);
+  }
+  viewMonth = data.date.slice(0, 7);
+  save();
+  render();
+  expenseDialog.close();
+  showToast(editingId === null ? `أُضيف دخل ${getIncomeType(data.type).name} ${formatMoney(amount)}` : "حُفظ التعديل");
+}
+
 deleteInFormBtn.addEventListener("click", () => {
-  if (deleteExpense(editingId)) expenseDialog.close();
+  const removed = formMode === "income" ? deleteIncome(editingId) : deleteExpense(editingId);
+  if (removed) expenseDialog.close();
 });
 
 $("add-btn").addEventListener("click", () => openForm(null));
@@ -1846,6 +1974,7 @@ async function exportBackup() {
     recurring,
     groups: customGroups,
     methods,
+    incomes,
   };
   const saved = await deliverFile(
     JSON.stringify(backup, null, 2),
@@ -1877,7 +2006,26 @@ function exportCsv() {
       [e.date, getCategory(e.categoryId).name, e.amount, getMethod(e.method).name, e.note || "", worthText[e.worth] || ""].map(cell).join(",")
     );
   }
+  if (incomes.length) {
+    rows.push("", ["التاريخ", "الدخل", "المبلغ (د.ع)", "استلمته عبر", "ملاحظة"].map(cell).join(","));
+    for (const i of [...incomes].sort((a, b) => a.date.localeCompare(b.date))) {
+      rows.push([i.date, getIncomeType(i.type).name, i.amount, getMethod(i.method).name, i.note || ""].map(cell).join(","));
+    }
+  }
   deliverFile("\uFEFF" + rows.join("\r\n"), `masarifi-${todayString()}.csv`, "text/csv");
+}
+
+function sanitizeIncome(i) {
+  if (!i || !Number.isFinite(i.id) || !(i.amount > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(i.date)) return null;
+  return {
+    id: i.id,
+    amount: Math.round(i.amount),
+    type: INCOME_TYPES.some((t) => t.id === i.type) ? i.type : "other-in",
+    date: i.date,
+    note: typeof i.note === "string" ? i.note.slice(0, 200) : "",
+    ...(typeof i.method === "string" ? { method: i.method } : {}),
+    ...(typeof i.recurringId === "string" ? { recurringId: i.recurringId } : {}),
+  };
 }
 
 // التحقق من ملف النسخة الاحتياطية وتنظيفه قبل استخدامه
@@ -1942,6 +2090,7 @@ function parseBackup(text) {
     budgets: sanitizeBudgets(data.budgets),
     groups: backupGroups,
     methods: cleanList(data.methods, sanitizeMethod),
+    incomes: cleanList(data.incomes, sanitizeIncome),
     recurring: cleanList(data.recurring, sanitizeRecurring),
     skipped,
     exportedAt: data.exportedAt,
@@ -2020,7 +2169,10 @@ function mergeImport(backup) {
   for (const season of backup.seasons || []) {
     if (!seasons.some((x) => x.id === season.id)) seasons.push(season);
   }
-  // طرق الدفع والمجموعات: تُضاف غير الموجودة
+  // الدخل وطرق الدفع والمجموعات: يُضاف غير الموجود
+  for (const inc of backup.incomes || []) {
+    if (!incomes.some((x) => x.id === inc.id)) incomes.push(inc);
+  }
   for (const m of backup.methods || []) {
     if (!methods.some((x) => x.id === m.id)) methods.push(m);
   }
@@ -2044,6 +2196,7 @@ function mergeImport(backup) {
 }
 
 function replaceWithImport(backup) {
+  if (backup.incomes) incomes = backup.incomes;
   if (backup.methods) {
     methods = backup.methods;
     if (!methods.some((m) => m.id === CASH_ID)) methods.unshift({ ...DEFAULT_METHODS[0] });

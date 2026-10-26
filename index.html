@@ -45,6 +45,9 @@
       <!-- تقدر تصرف اليوم: من الميزانية وما بقي من الشهر -->
       <section id="safe-spend" class="card safe-card" hidden></section>
 
+      <!-- صافي الشهر: الدخل − المصاريف -->
+      <section id="net-card" class="card net-card" hidden></section>
+
       <!-- الميزانية -->
       <section id="budget-summary" class="card budget-card" hidden></section>
 
@@ -269,6 +272,12 @@
         <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
 
+      <!-- مصروف أم دخل -->
+      <div class="segmented two mode-switch" id="mode-switch">
+        <label><input type="radio" name="entry-mode" value="expense" checked> مصروف</label>
+        <label><input type="radio" name="entry-mode" value="income"> دخل</label>
+      </div>
+
       <div class="amount-display" aria-live="polite">
         <p id="amount-expr" class="amount-expr money" hidden></p>
         <p class="amount-big money"><span id="amount-value">0</span><small class="money-unit">د.ع</small></p>
@@ -294,8 +303,16 @@
         <button type="button" data-key="0" class="key-wide">0</button>
       </div>
 
+      <!-- نوع الدخل (في وضع الدخل) -->
+      <div class="picker" id="income-picker" hidden>
+        <div class="picker-head">
+          <span class="picker-label">نوع الدخل</span>
+        </div>
+        <div id="income-types" class="cat-chips"></div>
+      </div>
+
       <!-- التصنيف: الأكثر استخداماً أولاً -->
-      <div class="picker">
+      <div class="picker" id="category-picker">
         <div class="picker-head">
           <span class="picker-label">التصنيف</span>
           <button type="button" id="show-all-cats" class="link-btn">كل التصنيفات <svg class="ic sm"><use href="icons/sprite.svg#i-chevron-down"/></svg></button>
@@ -311,7 +328,7 @@
       <!-- طريقة الدفع: يتذكر آخر طريقة -->
       <div class="picker" id="method-picker">
         <div class="picker-head">
-          <span class="picker-label">طريقة الدفع</span>
+          <span class="picker-label" id="method-label">طريقة الدفع</span>
         </div>
         <div id="method-chips" class="method-chips"></div>
       </div>

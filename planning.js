@@ -75,6 +75,46 @@ function renderBudgetSummary(monthExpenses) {
   renderBudgetAlerts(monthExpenses);
 }
 
+// صافي الشهر: الدخل − المصاريف، وكم ادّخرت (أقساط السلف وغيرها في مجموعة الادخار + ما بقي)
+function renderNetCard(monthExpenses) {
+  const box = $("net-card");
+  box.innerHTML = "";
+  const monthIncomes = incomes.filter((i) => i.date.startsWith(viewMonth));
+  const income = monthIncomes.reduce((s, i) => s + i.amount, 0);
+  const spent = monthExpenses.reduce((s, e) => s + e.amount, 0);
+  box.hidden = income === 0 && spent === 0;
+  if (box.hidden) return;
+
+  if (income === 0) {
+    // بدون دخل لا يمكن الحساب: ندعو المستخدم لتسجيله
+    const btn = el("button", "safe-setup");
+    btn.type = "button";
+    btn.append(icon("briefcase"), el("span", "", "سجّل دخلك (الراتب مثلاً) لتعرف كم بقي لك هذا الشهر"), icon("chevron-left", "sm"));
+    btn.addEventListener("click", () => openForm(null, "income"));
+    box.appendChild(btn);
+    box.classList.add("setup");
+    return;
+  }
+  box.classList.remove("setup");
+
+  const net = income - spent;
+  const grid = el("div", "net-grid");
+  const cell = (label, value, cls) => {
+    const c = el("div", "net-cell");
+    c.append(el("span", "stat-label", label), el("strong", `money ${cls || ""}`, formatMoney(value)));
+    return c;
+  };
+  grid.append(cell("الدخل", income, "good"), cell("المصاريف", spent), cell(net >= 0 ? "بقي لك" : "صرفت أكثر من دخلك", Math.abs(net), net >= 0 ? "" : "bad"));
+  box.appendChild(grid);
+
+  const savings = monthExpenses.filter((e) => getCategory(e.categoryId).group === "savings").reduce((s, e) => s + e.amount, 0);
+  const saved = savings + Math.max(0, net);
+  if (saved > 0) {
+    const percent = Math.round((saved / income) * 100);
+    box.appendChild(iconText("p", "piggy-bank", `ادّخرت ${formatMoney(saved)} · ${percent}% من دخلك`, "net-note"));
+  }
+}
+
 // "تقدر تصرف اليوم": ما بقي من الميزانية (قبل اليوم) مقسوماً على الأيام الباقية، ناقص ما صرفته اليوم
 function renderSafeToSpend(monthExpenses) {
   const box = $("safe-spend");
@@ -247,12 +287,13 @@ $("budget-form").addEventListener("submit", (event) => {
 // ===== المصاريف الثابتة =====
 
 // يستدعيها app.js عند إضافة مصروف مع اختيار "يتكرر كل شهر"
-function createRecurring(exp) {
+// kind: "expense" (مصروف ثابت) أو "income" (دخل ثابت مثل الراتب)
+function createRecurring(exp, kind = "expense") {
   const id = newId();
   recurring.push({
     id,
+    ...(kind === "income" ? { kind, type: exp.type, categoryId: "" } : { categoryId: exp.categoryId }),
     amount: exp.amount,
-    categoryId: exp.categoryId,
     note: exp.note,
     day: Number(exp.date.slice(8, 10)),
     method: exp.method || CASH_ID,
@@ -273,7 +314,9 @@ function addDueRecurring() {
       const lastDay = new Date(y, m, 0).getDate(); // يوم 31 يصبح 30 أو 28 في الأشهر الأقصر
       const date = `${month}-${String(Math.min(r.day, lastDay)).padStart(2, "0")}`;
       if (date > today) break;
-      expenses.push({ id: nextExpenseId(), amount: r.amount, categoryId: r.categoryId, date, note: r.note, method: r.method || CASH_ID, recurringId: r.id });
+      const entry = { id: nextExpenseId(), amount: r.amount, date, note: r.note, method: r.method || CASH_ID, recurringId: r.id };
+      if (r.kind === "income") incomes.push({ ...entry, type: r.type });
+      else expenses.push({ ...entry, categoryId: r.categoryId });
       r.lastMonth = month;
       added++;
       month = shiftMonth(month, 1);
@@ -291,13 +334,20 @@ function renderRecurringList() {
     return;
   }
   for (const r of recurring) {
-    const cat = getCategory(r.categoryId);
     const li = el("li", "category-row");
-    li.appendChild(catBadge(cat, "sm"));
+    const income = r.kind === "income";
+    const cat = income ? null : getCategory(r.categoryId);
+    if (income) {
+      const badge = el("span", "cat-icon sm income");
+      badge.appendChild(icon(getIncomeType(r.type).icon, "sm"));
+      li.appendChild(badge);
+    } else {
+      li.appendChild(catBadge(cat, "sm"));
+    }
     const info = el("div", "season-info");
     info.append(
-      el("strong", "", r.note || cat.name),
-      el("span", "muted", `${formatMoney(r.amount)} · يوم ${r.day} من كل شهر`)
+      el("strong", "", r.note || (income ? getIncomeType(r.type).name : cat.name)),
+      el("span", "muted", `${income ? "دخل " : ""}${formatMoney(r.amount)} · يوم ${r.day} من كل شهر`)
     );
 
     const editBtn = el("button", "small-btn", "تعديل المبلغ");
@@ -318,7 +368,7 @@ function renderRecurringList() {
     const stopBtn = el("button", "small-btn danger", "إيقاف");
     stopBtn.type = "button";
     stopBtn.addEventListener("click", () => {
-      if (!confirm(`إيقاف "${r.note || cat.name}"؟ المصاريف المسجلة سابقاً تبقى كما هي.`)) return;
+      if (!confirm(`إيقاف "${r.note || (income ? getIncomeType(r.type).name : cat.name)}"؟ ما سُجّل سابقاً يبقى كما هو.`)) return;
       recurring = recurring.filter((x) => x !== r);
       save();
       renderRecurringList();
@@ -431,13 +481,16 @@ function sanitizeBudgets(b) {
 }
 
 function sanitizeRecurring(r) {
-  if (!r || typeof r.id !== "string" || !(r.amount > 0) || typeof r.categoryId !== "string") return null;
+  if (!r || typeof r.id !== "string" || !(r.amount > 0)) return null;
+  const income = r.kind === "income";
+  if (income ? !INCOME_TYPES.some((t) => t.id === r.type) : typeof r.categoryId !== "string") return null;
   const day = Math.round(r.day);
   if (!(day >= 1 && day <= 31) || !/^\d{4}-\d{2}$/.test(r.lastMonth)) return null;
   return {
     id: r.id,
     amount: Math.round(r.amount),
-    categoryId: r.categoryId,
+    categoryId: income ? "" : r.categoryId,
+    ...(income ? { kind: "income", type: r.type } : {}),
     note: typeof r.note === "string" ? r.note.slice(0, 200) : "",
     day,
     lastMonth: r.lastMonth,
