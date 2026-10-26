@@ -18,6 +18,8 @@ const DEFAULT_GROUPS = [
 const OTHER_ID = "other";
 // أقساط السلفة تُسجَّل مصاريف بهذا التصنيف
 const JAMIYA_CATEGORY_ID = "jamiya-installment";
+// المبالغ المضافة لأهداف الادخار تُسجَّل مصاريف بهذا التصنيف
+const GOAL_CATEGORY_ID = "goal-saving";
 
 const DEFAULT_CATEGORIES = [
   { id: "rent", name: "إيجار", icon: "key-round", group: "home" },
@@ -61,6 +63,8 @@ const DEFAULT_CATEGORIES = [
 
   // تصنيف ثابت: يُضاف تلقائياً عند تسجيل دفع قسط سلفة (لا يُختار يدوياً ولا يُحذف)
   { id: JAMIYA_CATEGORY_ID, name: "قسط سلفة", icon: "piggy-bank", group: "savings", system: true },
+  // تصنيف ثابت: المبالغ التي تضيفها لأهداف الادخار
+  { id: GOAL_CATEGORY_ID, name: "إيداع لهدف", icon: "target", group: "savings", system: true },
 ];
 
 // الأيقونات التي يختار منها المستخدم عند إضافة تصنيف (كلها في icons/sprite.svg)

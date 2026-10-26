@@ -391,7 +391,7 @@ function quickSuggestions() {
   const since = isoDate(addDays(parseDate(todayString()), -QUICK_DAYS));
   const groups = new Map();
   for (const e of expenses) {
-    if (e.recurringId || e.jamiyaId || e.date < since) continue;
+    if (e.recurringId || e.jamiyaId || e.goalId || e.date < since) continue;
     const key = `${e.categoryId}|${e.amount}|${e.note || ""}`;
     const g = groups.get(key) || { categoryId: e.categoryId, amount: e.amount, note: e.note || "", count: 0, last: "" };
     g.count++;

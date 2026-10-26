@@ -343,7 +343,10 @@ function renderJamiya(j) {
 function receiveJamiya(j, turn) {
   turn.receivedOn = todayString();
   save();
-  showToast(`استلمت ${formatMoney(jamiyaInfo(j).payout)} من ${j.name}`);
+  const payout = jamiyaInfo(j).payout;
+  showToast(`استلمت ${formatMoney(payout)} من ${j.name}`);
+  // إذا كانت عندك أهداف: هل تضيف المبلغ لأحدها؟
+  if (typeof offerGoalAllocation === "function") offerGoalAllocation(payout, `سلفة ${j.name}`);
 }
 
 // القسط الذي سُجّل للتو في الشهر الحالي يأخذ تاريخ اليوم، وغيره يأخذ أول يوم في شهره

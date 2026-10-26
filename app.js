@@ -9,6 +9,7 @@ const RECURRING_KEY = "recurring";
 const GROUPS_KEY = "groups";
 const METHODS_KEY = "methods";
 const INCOMES_KEY = "incomes";
+const GOALS_KEY = "goals";
 const LAST_METHOD_KEY = "lastMethod";
 // خيار "+ مجموعة جديدة…" في قوائم المجموعات
 const NEW_GROUP_OPTION = "__new";
@@ -93,6 +94,7 @@ function save() {
     localStorage.setItem(GROUPS_KEY, JSON.stringify(customGroups));
     localStorage.setItem(METHODS_KEY, JSON.stringify(methods));
     localStorage.setItem(INCOMES_KEY, JSON.stringify(incomes));
+    localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
   } catch {
     alert("تعذّر حفظ البيانات في المتصفح.");
   }
@@ -111,6 +113,8 @@ if (!methods.some((m) => m.id === CASH_ID)) methods.unshift({ ...DEFAULT_METHODS
 let expenses = load(STORAGE_KEY) || [];
 // الدخل: { id, amount, type: نوع الدخل, date, note, method, recurringId? } (منفصل عن المصاريف)
 let incomes = load(INCOMES_KEY) || [];
+// أهداف الادخار (طريقة عرضها في ملف goals.js)
+let goals = load(GOALS_KEY) || [];
 let categories = load(CATEGORIES_KEY) || DEFAULT_CATEGORIES.map((c) => ({ ...c }));
 // السلف (الادخار الجماعي) والديون (طريقة عرضها وتعديلها في ملف jamiya-loans.js)
 let jamiyas = load(JAMIYAS_KEY) || [];
@@ -500,17 +504,18 @@ function renderExpense(exp) {
   row.tabIndex = 0;
   row.setAttribute("role", "button");
   // قسط السلفة يُعدَّل أو يُلغى من صفحة السلفة والديون، حتى يبقى الاثنان متطابقين
+  const linked = exp.jamiyaId || exp.goalId;
   const open = () => {
-    if (!exp.jamiyaId) return openForm(exp);
+    if (!linked) return openForm(exp);
     showView("view-social");
-    showToast("قسط السلفة يُسجَّل ويُلغى من شبكة أشهر السلفة");
+    showToast(exp.jamiyaId ? "قسط السلفة يُسجَّل ويُلغى من شبكة أشهر السلفة" : "مبالغ الأهداف تُعدَّل من بطاقة الهدف");
   };
   row.addEventListener("click", () => {
     if (!item.dataset.swiped) open();
   });
   row.addEventListener("keydown", (event) => {
     if (event.key === "Enter") open();
-    if (event.key === "Delete" && !exp.jamiyaId) deleteExpense(exp.id);
+    if (event.key === "Delete" && !linked) deleteExpense(exp.id);
   });
 
   const info = el("div", "expense-info");
@@ -518,7 +523,7 @@ function renderExpense(exp) {
   if (exp.worth === "no") title.appendChild(el("span", "tag bad", "ندمت"));
   if (exp.worth === "yes") title.appendChild(el("span", "tag good", "يستحق"));
   if (exp.recurringId) title.appendChild(el("span", "tag", "ثابت"));
-  if (exp.jamiyaId) title.appendChild(el("span", "tag", "ادخار"));
+  if (linked) title.appendChild(el("span", "tag", "ادخار"));
   if (exp.method && exp.method !== CASH_ID) title.appendChild(el("span", "tag", getMethod(exp.method).name));
   info.appendChild(title);
   if (exp.note) info.appendChild(el("div", "expense-meta", exp.note));
@@ -528,7 +533,7 @@ function renderExpense(exp) {
 
   row.append(catBadge(cat), info, amount);
   item.append(back, row);
-  if (!exp.jamiyaId) enableSwipe(item, row, () => deleteExpense(exp.id));
+  if (!linked) enableSwipe(item, row, () => deleteExpense(exp.id));
   return item;
 }
 
@@ -871,7 +876,7 @@ function topCategories() {
   const since = isoDateOffset(-QUICK_CATEGORY_DAYS);
   const counts = {};
   for (const e of expenses) {
-    if (e.recurringId || e.jamiyaId || e.date < since) continue;
+    if (e.recurringId || e.jamiyaId || e.goalId || e.date < since) continue;
     counts[e.categoryId] = (counts[e.categoryId] || 0) + 1;
   }
   const visible = visibleCategories();
@@ -1796,7 +1801,7 @@ function regretQueue() {
   return expenses
     .filter((e) => {
       const age = daysAgo(e.date);
-      return !e.worth && !e.recurringId && !e.jamiyaId && age >= REGRET_DELAY_DAYS && age <= REGRET_WINDOW_DAYS;
+      return !e.worth && !e.recurringId && !e.jamiyaId && !e.goalId && age >= REGRET_DELAY_DAYS && age <= REGRET_WINDOW_DAYS;
     })
     .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
 }
@@ -1975,6 +1980,7 @@ async function exportBackup() {
     groups: customGroups,
     methods,
     incomes,
+    goals,
   };
   const saved = await deliverFile(
     JSON.stringify(backup, null, 2),
@@ -2075,6 +2081,7 @@ function parseBackup(text) {
       ...(typeof e.recurringId === "string" ? { recurringId: e.recurringId } : {}),
       ...(typeof e.jamiyaId === "string" ? { jamiyaId: e.jamiyaId } : {}),
       ...(typeof e.method === "string" ? { method: e.method } : {}),
+      ...(typeof e.goalId === "string" ? { goalId: e.goalId } : {}),
     });
   }
 
@@ -2091,6 +2098,7 @@ function parseBackup(text) {
     groups: backupGroups,
     methods: cleanList(data.methods, sanitizeMethod),
     incomes: cleanList(data.incomes, sanitizeIncome),
+    goals: cleanList(data.goals, sanitizeGoal),
     recurring: cleanList(data.recurring, sanitizeRecurring),
     skipped,
     exportedAt: data.exportedAt,
@@ -2169,9 +2177,21 @@ function mergeImport(backup) {
   for (const season of backup.seasons || []) {
     if (!seasons.some((x) => x.id === season.id)) seasons.push(season);
   }
+  // الأهداف: يُضاف الهدف الجديد، وإضافات الهدف الموجود تُدمج
+  let addedGoals = 0;
+  for (const goal of backup.goals || []) {
+    const mine = goals.find((x) => x.id === goal.id);
+    if (!mine) {
+      goals.push(goal);
+      addedGoals++;
+    } else for (const a of goal.allocations) if (!mine.allocations.some((x) => x.id === a.id)) mine.allocations.push(a);
+  }
   // الدخل وطرق الدفع والمجموعات: يُضاف غير الموجود
+  let addedIncomes = 0;
   for (const inc of backup.incomes || []) {
-    if (!incomes.some((x) => x.id === inc.id)) incomes.push(inc);
+    if (incomes.some((x) => x.id === inc.id)) continue;
+    incomes.push(inc);
+    addedIncomes++;
   }
   for (const m of backup.methods || []) {
     if (!methods.some((x) => x.id === m.id)) methods.push(m);
@@ -2192,11 +2212,12 @@ function mergeImport(backup) {
     }
   }
   categories = sortCategories(categories);
-  return { expenses: added, jamiyas: addedJamiyas, loans: addedLoans };
+  return { expenses: added, jamiyas: addedJamiyas, loans: addedLoans, incomes: addedIncomes, goals: addedGoals };
 }
 
 function replaceWithImport(backup) {
   if (backup.incomes) incomes = backup.incomes;
+  if (backup.goals) goals = backup.goals;
   if (backup.methods) {
     methods = backup.methods;
     if (!methods.some((m) => m.id === CASH_ID)) methods.unshift({ ...DEFAULT_METHODS[0] });
@@ -2245,6 +2266,8 @@ $("import-merge").addEventListener("click", () => {
   if (added.expenses) parts.push(`${added.expenses} مصروف`);
   if (added.jamiyas) parts.push(countJamiyas(added.jamiyas));
   if (added.loans) parts.push(countLoans(added.loans));
+  if (added.incomes) parts.push(`${added.incomes} دخل`);
+  if (added.goals) parts.push(countWord(added.goals, "هدف", "هدفين", "أهداف"));
   alert(parts.length ? `تمت إضافة ${parts.join(" و")}.` : "كل ما في النسخة موجود لديك مسبقاً.");
 });
 

@@ -171,6 +171,16 @@
         <div id="jamiya-list"></div>
       </section>
 
+      <!-- أهداف الادخار -->
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title"><svg class="ic"><use href="icons/sprite.svg#i-target"/></svg> أهداف الادخار</h2>
+          <button type="button" id="add-goal" class="chip-btn"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> هدف</button>
+        </div>
+        <p class="hint start">ما تضيفه للهدف يُخصم من مصروف الشهر ويُحسب ادخاراً.</p>
+        <div id="goal-list"></div>
+      </section>
+
       <!-- الديون -->
       <section class="card">
         <div class="card-head">
@@ -451,6 +461,61 @@
     <button type="button" id="add-method" class="action-btn with-icon"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> طريقة دفع جديدة</button>
   </dialog>
 
+  <!-- نافذة هدف الادخار -->
+  <dialog id="goal-dialog" class="sheet">
+    <form id="goal-form">
+      <div class="sheet-header">
+        <h2 id="goal-form-title">هدف جديد</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
+      </div>
+      <div class="category-form-row">
+        <span id="goal-preview" class="chosen-icon"></span>
+        <input type="text" id="goal-name" maxlength="30" required placeholder="مثال: سيارة، سفر، زواج">
+      </div>
+      <label>
+        المبلغ المطلوب (دينار عراقي)
+        <input type="text" id="goal-target" class="money-input" inputmode="numeric" autocomplete="off" required placeholder="مثال: 15,000,000">
+      </label>
+      <label>
+        متى تريد الوصول؟ (اختياري)
+        <input type="month" id="goal-due">
+      </label>
+      <span class="hint start">الأيقونة:</span>
+      <div id="goal-icons" class="icon-picker"></div>
+      <div class="sheet-actions">
+        <button type="submit" class="primary-btn" id="goal-save">إضافة</button>
+      </div>
+      <button type="button" id="goal-delete" class="danger-btn" hidden>حذف هذا الهدف</button>
+    </form>
+  </dialog>
+
+  <!-- نافذة إضافة مبلغ لهدف -->
+  <dialog id="goal-add-dialog" class="sheet">
+    <form id="goal-add-form">
+      <div class="sheet-header">
+        <h2 id="goal-add-title">أضف للهدف</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
+      </div>
+      <p id="goal-add-hint" class="search-summary"></p>
+      <label id="goal-pick-row" hidden>
+        الهدف
+        <select id="goal-pick"></select>
+      </label>
+      <label>
+        المبلغ (دينار عراقي)
+        <input type="text" id="goal-add-amount" class="money-input" inputmode="numeric" autocomplete="off" required>
+      </label>
+      <label id="goal-add-date-row">
+        التاريخ
+        <input type="date" id="goal-add-date" required>
+      </label>
+      <div class="sheet-actions">
+        <button type="submit" class="primary-btn">أضف</button>
+      </div>
+      <button type="button" id="goal-add-skip" class="link-btn dark" hidden>لا، شكراً</button>
+    </form>
+  </dialog>
+
   <!-- نافذة الاسترجاع من نسخة احتياطية -->
   <dialog id="import-dialog" class="sheet">
     <div class="sheet-header">
@@ -704,6 +769,7 @@
   <script src="categories.js"></script>
   <script src="app.js"></script>
   <script src="jamiya-loans.js"></script>
+  <script src="goals.js"></script>
   <script src="seasons.js"></script>
   <script src="planning.js"></script>
   <script src="onboarding.js"></script>

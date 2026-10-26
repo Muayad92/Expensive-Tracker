@@ -2607,3 +2607,30 @@ button.with-icon {
 .badge:empty {
   display: none;
 }
+
+/* ===== أهداف الادخار ===== */
+
+.goal {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.goal.done {
+  border-color: var(--good);
+  background: var(--good-soft);
+}
+
+.goal-icon {
+  --c: var(--primary);
+}
+
+.goal-line {
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.goal .progress-fill {
+  background: var(--primary);
+}
