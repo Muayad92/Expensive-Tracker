@@ -18,6 +18,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="style.css">
+  <!-- إذا كان القفل مفعّلاً نُخفي المحتوى من أول لحظة، قبل ظهور شاشة الرمز -->
+  <script>try { if (localStorage.getItem("appLock")) document.documentElement.classList.add("locked"); } catch {}</script>
 </head>
 <body>
   <!-- ===== الرئيسية: نظرة سريعة على الشهر ===== -->
@@ -225,6 +227,11 @@
         <button type="button" id="open-reports" class="menu-row">
           <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-chart-column"/></svg></span>
           <span class="menu-text"><b>ملخص الأشهر</b><small>كم صرفت وكم ادّخرت كل شهر</small></span>
+          <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
+        </button>
+        <button type="button" id="open-lock" class="menu-row">
+          <span class="menu-icon"><svg class="ic"><use href="icons/sprite.svg#i-lock"/></svg></span>
+          <span class="menu-text"><b>قفل التطبيق</b><small id="lock-status">متوقف</small></span>
           <svg class="ic sm chev"><use href="icons/sprite.svg#i-chevron-left"/></svg>
         </button>
         <button type="button" id="manage-categories" class="menu-row">
@@ -482,6 +489,41 @@
     </div>
     <ul id="methods-list" class="category-list"></ul>
     <button type="button" id="add-method" class="action-btn with-icon"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> طريقة دفع جديدة</button>
+  </dialog>
+
+  <!-- شاشة القفل: تغطي التطبيق كله -->
+  <dialog id="lock-screen" class="lock-screen" aria-labelledby="lock-title">
+    <div class="lock-inner" tabindex="-1" autofocus>
+      <span class="lock-badge"><svg class="ic"><use href="icons/sprite.svg#i-lock"/></svg></span>
+      <h2 id="lock-title">أدخل الرمز</h2>
+      <p id="lock-message" class="lock-message" aria-live="assertive"></p>
+      <div id="lock-dots" class="lock-dots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="lock-pad">
+        <button type="button" data-digit="1">1</button>
+        <button type="button" data-digit="2">2</button>
+        <button type="button" data-digit="3">3</button>
+        <button type="button" data-digit="4">4</button>
+        <button type="button" data-digit="5">5</button>
+        <button type="button" data-digit="6">6</button>
+        <button type="button" data-digit="7">7</button>
+        <button type="button" data-digit="8">8</button>
+        <button type="button" data-digit="9">9</button>
+        <button type="button" id="lock-bio" class="key-fn" aria-label="Face ID"><svg class="ic"><use href="icons/sprite.svg#i-scan-face"/></svg></button>
+        <button type="button" data-digit="0">0</button>
+        <button type="button" id="lock-back" class="key-fn" aria-label="حذف رقم"><svg class="ic"><use href="icons/sprite.svg#i-delete"/></svg></button>
+      </div>
+      <button type="button" id="lock-forgot" class="link-btn dark">نسيت الرمز؟</button>
+      <button type="button" id="lock-cancel" class="link-btn dark" hidden>إلغاء</button>
+    </div>
+  </dialog>
+
+  <!-- إعدادات القفل -->
+  <dialog id="lock-settings" class="sheet">
+    <div class="sheet-header">
+      <h2>قفل التطبيق</h2>
+      <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
+    </div>
+    <div id="lock-settings-body" class="lock-settings-body"></div>
   </dialog>
 
   <!-- نافذة التسجيل بجملة: بالمايك أو بالكتابة -->
@@ -839,5 +881,6 @@
   <script src="summary.js"></script>
   <script src="voice.js"></script>
   <script src="onboarding.js"></script>
+  <script src="lock.js"></script>
 </body>
 </html>
