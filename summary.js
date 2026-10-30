@@ -116,6 +116,50 @@ function renderMonthReport(box, month) {
   if (r.regret > 0) box.appendChild(iconText("p", "thumbs-down", `ندمت على ${formatMoney(r.regret)}`, "report-line warn-text"));
 }
 
+// ===== رسم آخر 6 أشهر =====
+
+const TREND_MONTHS = 6;
+
+// مبلغ مختصر فوق العمود: "2.1 مليون"، "850 ألف"
+function shortMoney(value) {
+  if (privacy) return "••••";
+  if (value >= 1e6) return `${(value / 1e6).toFixed(1).replace(/\.0$/, "")} مليون`;
+  if (value >= 1000) return `${Math.round(value / 1000)} ألف`;
+  return String(value);
+}
+
+// أعمدة: كل عمود مصروف شهر، والمختار أغمق. الضغط على عمود يستدعي onPick(month)
+function renderTrend(box, endMonth, selected, onPick) {
+  const months = [];
+  for (let k = TREND_MONTHS - 1; k >= 0; k--) months.push(shiftMonth(endMonth, -k));
+  const totals = months.map((m) => expenses.filter((e) => e.date.startsWith(m)).reduce((s, e) => s + e.amount, 0));
+  const max = Math.max(...totals, 1);
+  const current = todayString().slice(0, 7);
+
+  box.innerHTML = "";
+  const chart = el("div", "trend");
+  chart.setAttribute("role", "list");
+  months.forEach((m, k) => {
+    const label = `${monthLabel(m)}: ${formatMoney(totals[k])}${m === current ? " (حتى الآن)" : ""}`;
+    const col = el("button", m === selected ? "trend-col selected" : "trend-col");
+    col.type = "button";
+    col.setAttribute("role", "listitem");
+    col.setAttribute("aria-label", label);
+    col.title = label;
+    // الرقم فوق العمود المختار فقط
+    col.appendChild(el("span", "trend-value", m === selected && totals[k] ? shortMoney(totals[k]) : ""));
+    const track = el("span", "trend-track");
+    const bar = el("span", m === current ? "trend-bar partial" : "trend-bar");
+    bar.style.height = totals[k] ? `${Math.max(3, (totals[k] / max) * 100)}%` : "0";
+    track.appendChild(bar);
+    col.append(track, el("span", "trend-month", new Date(`${m}-01T00:00`).toLocaleDateString("en-US", { month: "short" })));
+    col.addEventListener("click", () => onPick(m));
+    chart.appendChild(col);
+  });
+  box.appendChild(chart);
+  return { months, totals };
+}
+
 // ===== بطاقة الرئيسية =====
 
 function renderReportCard() {
@@ -145,6 +189,22 @@ $("month-report-close").addEventListener("click", () => {
 
 $("month-report-more").addEventListener("click", () => openReports(shiftMonth(todayString().slice(0, 7), -1)));
 
+// بطاقة "آخر 6 أشهر": تظهر إذا فيه شهران فيهما مصاريف على الأقل
+function renderTrendCard() {
+  const card = $("trend-card");
+  const current = todayString().slice(0, 7);
+  const since = shiftMonth(current, -(TREND_MONTHS - 1));
+  const active = new Set(expenses.filter((e) => e.date.slice(0, 7) >= since).map((e) => e.date.slice(0, 7)));
+  card.hidden = active.size < 2;
+  if (card.hidden) return;
+  const { months, totals } = renderTrend($("trend-chart"), current, viewMonth, (m) => openReports(m));
+  // المتوسط من الأشهر المكتملة التي فيها مصاريف
+  const done = months.map((m, k) => [m, totals[k]]).filter(([m, t]) => m !== current && t > 0);
+  $("trend-note").textContent = done.length
+    ? `متوسط صرفك الشهري ${formatMoney(Math.round(done.reduce((s, [, t]) => s + t, 0) / done.length))}`
+    : "";
+}
+
 // ===== نافذة ملخص الأشهر =====
 
 const reportDialog = $("report-dialog");
@@ -152,7 +212,14 @@ let reportMonth = null;
 
 function showReportMonth() {
   $("report-month").textContent = monthLabel(reportMonth);
-  $("report-next").disabled = reportMonth >= todayString().slice(0, 7);
+  const current = todayString().slice(0, 7);
+  $("report-next").disabled = reportMonth >= current;
+  // العمود المختار يبقى ظاهراً في الرسم
+  const end = monthsBetween(reportMonth, current) < TREND_MONTHS ? current : shiftMonth(reportMonth, 3);
+  renderTrend($("report-trend"), end, reportMonth, (m) => {
+    reportMonth = m;
+    showReportMonth();
+  });
   renderMonthReport($("report-body"), reportMonth);
 }
 
@@ -177,8 +244,13 @@ $("open-reports").addEventListener("click", () => openReports());
 // ===== التشغيل =====
 
 setupDialog(reportDialog);
-document.addEventListener("data-changed", renderReportCard);
+function renderSummaryCards() {
+  renderReportCard();
+  renderTrendCard();
+}
+
+document.addEventListener("data-changed", renderSummaryCards);
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") renderReportCard();
+  if (document.visibilityState === "visible") renderSummaryCards();
 });
-renderReportCard();
+renderSummaryCards();

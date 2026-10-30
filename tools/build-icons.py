@@ -14,7 +14,7 @@ NAMES = """
 house list plus hand-coins menu chevron-right chevron-left chevron-down search x check clock target
 triangle-alert octagon-alert moon-star trash-2 pencil repeat calendar calendar-days tags briefcase save
 folder-open sheet eye eye-off thumbs-up thumbs-down bell settings-2 wallet arrow-up-right arrow-down-left
-piggy-bank zap sparkles share-2 info undo-2 delete trending-up trending-down chart-column
+piggy-bank zap sparkles share-2 info undo-2 delete trending-up trending-down chart-column mic
 key-round utility-pole plug-zap droplets flame spray-can wrench sofa
 shopping-basket croissant drumstick carrot utensils coffee
 fuel car-taxi-front car

@@ -106,6 +106,13 @@
         <ul id="category-totals" class="totals"></ul>
       </section>
 
+      <!-- آخر 6 أشهر: الضغط على شهر يفتح ملخصه -->
+      <section id="trend-card" class="card" hidden>
+        <h2 class="card-title">آخر 6 أشهر</h2>
+        <div id="trend-chart"></div>
+        <p id="trend-note" class="trend-note"></p>
+      </section>
+
       <!-- حسب طريقة الدفع (تظهر عند استخدام أكثر من طريقة في الشهر) -->
       <section id="methods-card" class="card" hidden>
         <h2 class="card-title">حسب طريقة الدفع</h2>
@@ -294,6 +301,7 @@
     <form id="expense-form">
       <div class="sheet-header">
         <h2 id="form-title">مصروف جديد</h2>
+        <button type="button" id="open-sentence" class="chip-btn sentence-btn"><svg class="ic sm"><use href="icons/sprite.svg#i-mic"/></svg> بجملة</button>
         <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
       </div>
 
@@ -476,6 +484,32 @@
     <button type="button" id="add-method" class="action-btn with-icon"><svg class="ic sm"><use href="icons/sprite.svg#i-plus"/></svg> طريقة دفع جديدة</button>
   </dialog>
 
+  <!-- نافذة التسجيل بجملة: بالمايك أو بالكتابة -->
+  <dialog id="sentence-dialog" class="sheet">
+    <form id="sentence-form">
+      <div class="sheet-header">
+        <h2>احجي أو اكتب مصروفك</h2>
+        <button type="button" class="icon-btn close-btn" aria-label="إغلاق"><svg class="ic"><use href="icons/sprite.svg#i-x"/></svg></button>
+      </div>
+      <div class="mic-area">
+        <button type="button" id="mic-btn" class="mic-btn" aria-label="المايك"><svg class="ic"><use href="icons/sprite.svg#i-mic"/></svg></button>
+        <p id="mic-status" class="mic-status" aria-live="polite"></p>
+      </div>
+      <input type="text" id="sentence-input" autocomplete="off" placeholder="مثال: صرفت 50 ألف أكل">
+      <div id="sentence-preview" class="sentence-preview" aria-live="polite" hidden></div>
+      <p class="hint start">جرّب تكول:</p>
+      <div id="sentence-examples" class="sentence-examples">
+        <button type="button" class="chip-btn">صرفت 50 ألف أكل</button>
+        <button type="button" class="chip-btn">دفعت ربع مليون مولدة</button>
+        <button type="button" class="chip-btn">تكسي 5 آلاف أمس</button>
+        <button type="button" class="chip-btn">استلمت الراتب مليون ونص</button>
+      </div>
+      <div class="sheet-actions">
+        <button type="submit" class="primary-btn">متابعة</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- نافذة ملخص الأشهر -->
   <dialog id="report-dialog" class="sheet">
     <div class="sheet-header">
@@ -487,6 +521,7 @@
       <span id="report-month" class="month-name"></span>
       <button type="button" id="report-next" class="round-btn" aria-label="الشهر التالي"><svg class="ic"><use href="icons/sprite.svg#i-chevron-left"/></svg></button>
     </div>
+    <div id="report-trend" class="report-trend"></div>
     <div id="report-body" class="report-body"></div>
   </dialog>
 
@@ -802,6 +837,7 @@
   <script src="seasons.js"></script>
   <script src="planning.js"></script>
   <script src="summary.js"></script>
+  <script src="voice.js"></script>
   <script src="onboarding.js"></script>
 </body>
 </html>

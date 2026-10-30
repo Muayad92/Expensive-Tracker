@@ -344,6 +344,8 @@ function render() {
   renderCategoryTotals(monthExpenses);
   renderMethodTotals(monthExpenses);
   renderRegretStats(monthExpenses);
+  // رسم آخر 6 أشهر (في summary.js) يميّز الشهر المعروض
+  if (typeof renderTrendCard === "function") renderTrendCard();
 
   // القائمة: نتائج البحث من كل الأشهر، أو مصاريف الشهر المختار (ومعها الدخل)
   let shown;
