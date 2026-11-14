@@ -2,15 +2,19 @@
 // ونقل بيانات النسخ السابقة إليها. يُحمَّل قبل app.js
 
 // لون كل مجموعة ثابت: رقم من ألوان القرص (--series-1 ... --series-8) أو "rest" للرمادي
+// في القرص أي لونين قد يتجاوران، ومن الثمانية 4 فقط تبقى واضحة الفرق مع بعضها كلها:
+// الأزرق والأخضر المائي والأصفر والوردي (1 و3 و4 و5). أعطيناها للمجموعات الأكبر عادةً
+// (البيت والادخار والأكل والعائلة)، والألوان المتقاربة (البرتقالي والأحمر، والأزرق والبنفسجي)
+// لمجموعات نادراً ما تكبر معاً
 const DEFAULT_GROUPS = [
   { id: "home", name: "البيت", icon: "house", color: 1 },
-  { id: "food", name: "الأكل", icon: "utensils", color: 2 },
-  { id: "transport", name: "النقل", icon: "car", color: 3 },
-  { id: "telecom", name: "الاتصالات", icon: "smartphone", color: 4 },
+  { id: "food", name: "الأكل", icon: "utensils", color: 4 },
+  { id: "transport", name: "النقل", icon: "car", color: 2 },
+  { id: "telecom", name: "الاتصالات", icon: "smartphone", color: 8 },
   { id: "family", name: "العائلة", icon: "users", color: 5 },
   { id: "health", name: "الصحة", icon: "stethoscope", color: 6 },
   { id: "social", name: "الواجبات الاجتماعية", icon: "heart-handshake", color: 7 },
-  { id: "savings", name: "الادخار", icon: "piggy-bank", color: 8 },
+  { id: "savings", name: "الادخار", icon: "piggy-bank", color: 3 },
   { id: "other", name: "أخرى", icon: "package", color: "rest" },
 ];
 
