@@ -255,6 +255,78 @@ function monthLabel(month) {
   return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
+// ===== بداية الشهر (يوم نزول الراتب) =====
+// كل حسابات "الشهر" تمشي على فترات: من يوم البداية إلى اليوم الذي قبله في الشهر التالي.
+// الفترة تُعرف بشهر بدايتها: مع البداية يوم 20، الفترة "2026-10" = من 20 Oct إلى 19 Nov.
+// مع البداية يوم 1 تصبح الفترة هي الشهر العادي.
+const MONTH_START_KEY = "monthStart";
+// حتى 28 حتى يكون اليوم موجوداً في كل الأشهر
+const MAX_MONTH_START = 28;
+
+function sanitizeMonthStart(value) {
+  const day = Math.round(Number(value));
+  return day >= 1 && day <= MAX_MONTH_START ? day : 1;
+}
+
+let monthStart = 1;
+try {
+  monthStart = sanitizeMonthStart(localStorage.getItem(MONTH_START_KEY));
+} catch {
+  // يبقى الشهر العادي
+}
+
+function setMonthStart(day) {
+  monthStart = sanitizeMonthStart(day);
+  try {
+    localStorage.setItem(MONTH_START_KEY, String(monthStart));
+  } catch {
+    // يبقى لهذه الجلسة فقط
+  }
+  viewMonth = currentPeriod();
+}
+
+// الفترة التي يقع فيها تاريخ YYYY-MM-DD
+function periodOf(date) {
+  const month = date.slice(0, 7);
+  return Number(date.slice(8, 10)) >= monthStart ? month : shiftMonth(month, -1);
+}
+
+function currentPeriod() {
+  return periodOf(todayString());
+}
+
+// أول يوم في الفترة بصيغة YYYY-MM-DD
+function periodStart(period) {
+  return `${period}-${String(monthStart).padStart(2, "0")}`;
+}
+
+// آخر يوم في الفترة كتاريخ
+function periodEndDate(period) {
+  const [y, m] = period.split("-").map(Number);
+  return new Date(y, m, monthStart - 1);
+}
+
+// رقم اليوم (للفرق بين تاريخين بالأيام)
+function dayNumber(date) {
+  const [y, m, d] = date.split("-").map(Number);
+  return Date.UTC(y, m - 1, d) / 86400000;
+}
+
+// اسم الفترة: "October 2026" أو "20 Oct – 19 Nov"
+function periodLabel(period) {
+  if (monthStart === 1) return monthLabel(period);
+  const [y, m] = period.split("-").map(Number);
+  const start = new Date(y, m - 1, monthStart);
+  const end = periodEndDate(period);
+  const short = (d) => `${d.getDate()} ${d.toLocaleDateString("en-US", { month: "short" })}`;
+  const thisYear = new Date().getFullYear();
+  let text;
+  if (start.getFullYear() !== end.getFullYear()) text = `${short(start)} ${start.getFullYear()} – ${short(end)} ${end.getFullYear()}`;
+  else text = start.getFullYear() === thisYear ? `${short(start)} – ${short(end)}` : `${short(start)} – ${short(end)} ${end.getFullYear()}`;
+  // من اليسار لليمين داخل الكلام العربي، وإلا ينقلب الترتيب (ltr في jamiya-loans.js)
+  return ltr(text);
+}
+
 // إخفاء المبالغ (زر 👁): الأرقام تظهر •••• عند فتح التطبيق أمام الناس. إعداد خاص بهذا الجوال
 const PRIVACY_KEY = "privacy";
 let privacy = false;
@@ -310,7 +382,7 @@ function el(tag, className, text) {
 
 // ===== حالة العرض =====
 
-let viewMonth = todayString().slice(0, 7);
+let viewMonth = currentPeriod();
 let editingId = null;
 let editingCategoryId = null;
 let chosenIcon = "tag";
@@ -318,16 +390,16 @@ let chosenIcon = "tag";
 // ===== العرض =====
 
 function render() {
-  const currentMonth = todayString().slice(0, 7);
-  const monthExpenses = expenses.filter((e) => e.date.startsWith(viewMonth));
+  const currentMonth = currentPeriod();
+  const monthExpenses = expenses.filter((e) => periodOf(e.date) === viewMonth);
   const query = normalize(searchInput.value);
 
   renderBackupStatus();
 
   // الترويسة
   const monthTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
-  monthNameEl.textContent = monthLabel(viewMonth);
-  $("list-month-name").textContent = monthLabel(viewMonth);
+  monthNameEl.textContent = periodLabel(viewMonth);
+  $("list-month-name").textContent = periodLabel(viewMonth);
   setMoney(monthTotalEl, monthTotal);
   thisMonthBtn.hidden = viewMonth === currentMonth;
   workSummaryEl.hidden = !work || monthTotal === 0;
@@ -362,8 +434,8 @@ function render() {
     emptyEl.textContent = "لا توجد نتائج.";
   } else {
     shown = monthExpenses;
-    shownIncomes = incomes.filter((i) => i.date.startsWith(viewMonth));
-    listTitleEl.textContent = `مصاريف ${monthLabel(viewMonth)}`;
+    shownIncomes = incomes.filter((i) => periodOf(i.date) === viewMonth);
+    listTitleEl.textContent = `مصاريف ${periodLabel(viewMonth)}`;
     searchSummaryEl.hidden = true;
     emptyEl.innerHTML = expenses.length
       ? "لا توجد مصاريف في هذا الشهر."
@@ -1111,7 +1183,7 @@ function openForm(exp, mode = "expense") {
   } else {
     // عند إضافة مصروف لشهر سابق، نقترح أول يوم من ذلك الشهر
     const today = todayString();
-    dateInput.value = today.startsWith(viewMonth) ? today : `${viewMonth}-01`;
+    dateInput.value = periodOf(today) === viewMonth ? today : periodStart(viewMonth);
   }
 
   chosenMethod = exp ? exp.method || CASH_ID : lastMethod();
@@ -1250,7 +1322,7 @@ form.addEventListener("submit", (event) => {
   }
 
   // الانتقال إلى شهر المصروف حتى يراه المستخدم
-  viewMonth = data.date.slice(0, 7);
+  viewMonth = periodOf(data.date);
   save();
   render();
   expenseDialog.close();
@@ -1267,7 +1339,7 @@ function saveIncome(amount) {
     if ($("recurring").checked) income.recurringId = createRecurring(data, "income");
     incomes.push(income);
   }
-  viewMonth = data.date.slice(0, 7);
+  viewMonth = periodOf(data.date);
   save();
   render();
   expenseDialog.close();
@@ -1297,7 +1369,7 @@ $("list-prev-month").addEventListener("click", () => $("prev-month").click());
 $("list-next-month").addEventListener("click", () => $("next-month").click());
 
 thisMonthBtn.addEventListener("click", () => {
-  viewMonth = todayString().slice(0, 7);
+  viewMonth = currentPeriod();
   render();
 });
 
@@ -1983,6 +2055,7 @@ async function exportBackup() {
     methods,
     incomes,
     goals,
+    monthStart,
   };
   const saved = await deliverFile(
     JSON.stringify(backup, null, 2),
@@ -2102,6 +2175,7 @@ function parseBackup(text) {
     incomes: cleanList(data.incomes, sanitizeIncome),
     goals: cleanList(data.goals, sanitizeGoal),
     recurring: cleanList(data.recurring, sanitizeRecurring),
+    monthStart: data.monthStart === undefined ? null : sanitizeMonthStart(data.monthStart),
     skipped,
     exportedAt: data.exportedAt,
   };
@@ -2220,6 +2294,10 @@ function mergeImport(backup) {
 function replaceWithImport(backup) {
   if (backup.incomes) incomes = backup.incomes;
   if (backup.goals) goals = backup.goals;
+  if (backup.monthStart) {
+    setMonthStart(backup.monthStart);
+    if (typeof renderMonthStartStatus === "function") renderMonthStartStatus();
+  }
   if (backup.methods) {
     methods = backup.methods;
     if (!methods.some((m) => m.id === CASH_ID)) methods.unshift({ ...DEFAULT_METHODS[0] });

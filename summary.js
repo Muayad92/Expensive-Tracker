@@ -24,14 +24,17 @@ function totalsByCategory(list) {
 
 function monthReport(month) {
   const prevMonth = shiftMonth(month, -1);
-  const monthExpenses = expenses.filter((e) => e.date.startsWith(month));
-  // الشهر الحالي لم ينتهِ: نقارنه بنفس الأيام من الشهر الماضي
+  const monthExpenses = expenses.filter((e) => periodOf(e.date) === month);
+  // الشهر الحالي لم ينتهِ: نقارنه بنفس عدد الأيام من بداية الشهر الماضي
   const today = todayString();
-  const partial = month === today.slice(0, 7);
-  const prevExpenses = expenses.filter((e) => e.date.startsWith(prevMonth) && (!partial || e.date.slice(8) <= today.slice(8)));
+  const partial = month === currentPeriod();
+  const daysIn = dayNumber(today) - dayNumber(periodStart(month));
+  const prevExpenses = expenses.filter(
+    (e) => periodOf(e.date) === prevMonth && (!partial || dayNumber(e.date) - dayNumber(periodStart(prevMonth)) <= daysIn)
+  );
   const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
   const prevTotal = prevExpenses.reduce((s, e) => s + e.amount, 0);
-  const income = incomes.filter((i) => i.date.startsWith(month)).reduce((s, i) => s + i.amount, 0);
+  const income = incomes.filter((i) => periodOf(i.date) === month).reduce((s, i) => s + i.amount, 0);
 
   // التصنيفات التي زاد صرفها عن الشهر الماضي (بدون الادخار، فزيادته شيء جيد)
   const now = totalsByCategory(monthExpenses);
@@ -72,7 +75,7 @@ function renderMonthReport(box, month) {
 
   const head = el("div", "report-total");
   head.append(el("span", "stat-label", r.partial ? "صرفت حتى الآن" : "صرفت"), el("strong", "money", formatMoney(r.total)));
-  const than = r.partial ? `نفس الأيام من ${monthLabel(r.prevMonth)}` : monthLabel(r.prevMonth);
+  const than = r.partial ? `نفس الأيام من ${periodLabel(r.prevMonth)}` : periodLabel(r.prevMonth);
   if (r.change !== null && r.change !== 0) {
     const up = r.change > 0;
     head.appendChild(iconText("span", up ? "trending-up" : "trending-down",
@@ -132,15 +135,15 @@ function shortMoney(value) {
 function renderTrend(box, endMonth, selected, onPick) {
   const months = [];
   for (let k = TREND_MONTHS - 1; k >= 0; k--) months.push(shiftMonth(endMonth, -k));
-  const totals = months.map((m) => expenses.filter((e) => e.date.startsWith(m)).reduce((s, e) => s + e.amount, 0));
+  const totals = months.map((m) => expenses.filter((e) => periodOf(e.date) === m).reduce((s, e) => s + e.amount, 0));
   const max = Math.max(...totals, 1);
-  const current = todayString().slice(0, 7);
+  const current = currentPeriod();
 
   box.innerHTML = "";
   const chart = el("div", "trend");
   chart.setAttribute("role", "list");
   months.forEach((m, k) => {
-    const label = `${monthLabel(m)}: ${formatMoney(totals[k])}${m === current ? " (حتى الآن)" : ""}`;
+    const label = `${periodLabel(m)}: ${formatMoney(totals[k])}${m === current ? " (حتى الآن)" : ""}`;
     const col = el("button", m === selected ? "trend-col selected" : "trend-col");
     col.type = "button";
     col.setAttribute("role", "listitem");
@@ -152,7 +155,9 @@ function renderTrend(box, endMonth, selected, onPick) {
     const bar = el("span", m === current ? "trend-bar partial" : "trend-bar");
     bar.style.height = totals[k] ? `${Math.max(3, (totals[k] / max) * 100)}%` : "0";
     track.appendChild(bar);
-    col.append(track, el("span", "trend-month", new Date(`${m}-01T00:00`).toLocaleDateString("en-US", { month: "short" })));
+    // مع بداية شهر غير يوم 1 نكتب يوم البداية: "20 Oct"
+    const short = new Date(`${m}-01T00:00`).toLocaleDateString("en-US", { month: "short" });
+    col.append(track, el("span", "trend-month", monthStart === 1 ? short : ltr(`${monthStart} ${short}`)));
     col.addEventListener("click", () => onPick(m));
     chart.appendChild(col);
   });
@@ -164,20 +169,20 @@ function renderTrend(box, endMonth, selected, onPick) {
 
 function renderReportCard() {
   const card = $("month-report");
-  const today = todayString();
-  const month = shiftMonth(today.slice(0, 7), -1);
+  const current = currentPeriod();
+  const month = shiftMonth(current, -1);
   const show =
-    Number(today.slice(8, 10)) <= REPORT_CARD_DAYS &&
-    expenses.some((e) => e.date.startsWith(month)) &&
+    dayNumber(todayString()) - dayNumber(periodStart(current)) < REPORT_CARD_DAYS &&
+    expenses.some((e) => periodOf(e.date) === month) &&
     !loadDismissedReports().includes(month);
   card.hidden = !show;
   if (!show) return;
-  $("month-report-title").textContent = `ملخص ${monthLabel(month)}`;
+  $("month-report-title").textContent = `ملخص ${periodLabel(month)}`;
   renderMonthReport($("month-report-body"), month);
 }
 
 $("month-report-close").addEventListener("click", () => {
-  const month = shiftMonth(todayString().slice(0, 7), -1);
+  const month = shiftMonth(currentPeriod(), -1);
   try {
     // نحتفظ بآخر 12 شهراً فقط
     localStorage.setItem(DISMISSED_REPORTS_KEY, JSON.stringify([...loadDismissedReports(), month].slice(-12)));
@@ -187,14 +192,14 @@ $("month-report-close").addEventListener("click", () => {
   $("month-report").hidden = true;
 });
 
-$("month-report-more").addEventListener("click", () => openReports(shiftMonth(todayString().slice(0, 7), -1)));
+$("month-report-more").addEventListener("click", () => openReports(shiftMonth(currentPeriod(), -1)));
 
 // بطاقة "آخر 6 أشهر": تظهر إذا فيه شهران فيهما مصاريف على الأقل
 function renderTrendCard() {
   const card = $("trend-card");
-  const current = todayString().slice(0, 7);
+  const current = currentPeriod();
   const since = shiftMonth(current, -(TREND_MONTHS - 1));
-  const active = new Set(expenses.filter((e) => e.date.slice(0, 7) >= since).map((e) => e.date.slice(0, 7)));
+  const active = new Set(expenses.map((e) => periodOf(e.date)).filter((m) => m >= since));
   card.hidden = active.size < 2;
   if (card.hidden) return;
   const { months, totals } = renderTrend($("trend-chart"), current, viewMonth, (m) => openReports(m));
@@ -211,8 +216,8 @@ const reportDialog = $("report-dialog");
 let reportMonth = null;
 
 function showReportMonth() {
-  $("report-month").textContent = monthLabel(reportMonth);
-  const current = todayString().slice(0, 7);
+  $("report-month").textContent = periodLabel(reportMonth);
+  const current = currentPeriod();
   $("report-next").disabled = reportMonth >= current;
   // العمود المختار يبقى ظاهراً في الرسم
   const end = monthsBetween(reportMonth, current) < TREND_MONTHS ? current : shiftMonth(reportMonth, 3);
@@ -225,8 +230,8 @@ function showReportMonth() {
 
 function openReports(month) {
   // الشهر الماضي افتراضياً، أو الحالي إذا لم يكن في الماضي شيء
-  const last = shiftMonth(todayString().slice(0, 7), -1);
-  reportMonth = month || (monthReport(last).empty ? todayString().slice(0, 7) : last);
+  const last = shiftMonth(currentPeriod(), -1);
+  reportMonth = month || (monthReport(last).empty ? currentPeriod() : last);
   showReportMonth();
   reportDialog.showModal();
 }

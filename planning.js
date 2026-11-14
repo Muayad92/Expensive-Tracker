@@ -35,7 +35,7 @@ function meter(percent, level) {
 
 function monthSpent(month, categoryId) {
   return expenses
-    .filter((e) => e.date.startsWith(month) && (!categoryId || getCategory(e.categoryId).id === categoryId))
+    .filter((e) => periodOf(e.date) === month && (!categoryId || getCategory(e.categoryId).id === categoryId))
     .reduce((s, e) => s + e.amount, 0);
 }
 
@@ -79,7 +79,7 @@ function renderBudgetSummary(monthExpenses) {
 function renderNetCard(monthExpenses) {
   const box = $("net-card");
   box.innerHTML = "";
-  const monthIncomes = incomes.filter((i) => i.date.startsWith(viewMonth));
+  const monthIncomes = incomes.filter((i) => periodOf(i.date) === viewMonth);
   const income = monthIncomes.reduce((s, i) => s + i.amount, 0);
   const spent = monthExpenses.reduce((s, e) => s + e.amount, 0);
   box.hidden = income === 0 && spent === 0;
@@ -120,7 +120,7 @@ function renderSafeToSpend(monthExpenses) {
   const box = $("safe-spend");
   box.innerHTML = "";
   const today = todayString();
-  box.hidden = viewMonth !== today.slice(0, 7);
+  box.hidden = viewMonth !== currentPeriod();
   if (box.hidden) return;
 
   if (!budgets.total) {
@@ -135,8 +135,9 @@ function renderSafeToSpend(monthExpenses) {
   }
   box.classList.remove("setup");
 
-  const now = parseDate(today);
-  const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
+  // الأيام الباقية حتى نهاية الفترة (اليوم منها)
+  const end = periodEndDate(viewMonth);
+  const daysLeft = Math.round((Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) / 86400000) - dayNumber(today)) + 1;
   const spentToday = monthExpenses.filter((e) => e.date === today).reduce((s, e) => s + e.amount, 0);
   const spentBefore = monthExpenses.reduce((s, e) => s + e.amount, 0) - spentToday;
   const leftForMonth = budgets.total - spentBefore;
@@ -163,7 +164,7 @@ function renderBudgetAlerts(monthExpenses) {
   box.innerHTML = "";
   const lines = [];
   let anyOver = false;
-  if (viewMonth === todayString().slice(0, 7)) {
+  if (viewMonth === currentPeriod()) {
     for (const [id, limit] of Object.entries(budgets.byCategory)) {
       if (!categories.some((c) => c.id === id)) continue;
       const spent = monthExpenses.filter((e) => getCategory(e.categoryId).id === id).reduce((s, e) => s + e.amount, 0);
@@ -199,7 +200,7 @@ function categoryBudgetRow(id, spent) {
 
 // رسالة فورية عندما يوصلك مصروف جديد إلى 80% أو يتجاوز الميزانية
 function notifyBudget(exp) {
-  const month = exp.date.slice(0, 7);
+  const month = periodOf(exp.date);
   const messages = [];
   const check = (limit, spentAfter, label) => {
     if (!limit) return;
@@ -426,7 +427,7 @@ function renderQuickAdd() {
 function quickAdd(s) {
   const exp = { id: nextExpenseId(), amount: s.amount, categoryId: s.categoryId, date: todayString(), note: s.note, method: s.method || CASH_ID };
   expenses.push(exp);
-  viewMonth = exp.date.slice(0, 7);
+  viewMonth = periodOf(exp.date);
   save();
   render();
   const cat = getCategory(s.categoryId);
@@ -517,3 +518,54 @@ document.addEventListener("visibilitychange", () => {
   render();
   if (added) showToast(`أُضيف ${countWord(added, "مصروف ثابت", "مصروفان ثابتان", "مصاريف ثابتة")}`);
 });
+
+// ===== بداية الشهر (يوم نزول الراتب) =====
+
+const monthStartDialog = $("month-start-dialog");
+
+// اسم الفترة الحالية لو بدأ الشهر يوم day (للمعاينة قبل الحفظ)
+function previewPeriodLabel(day) {
+  const saved = monthStart;
+  monthStart = day;
+  const text = periodLabel(currentPeriod());
+  monthStart = saved;
+  return text;
+}
+
+function renderMonthStartStatus() {
+  $("month-start-status").textContent = monthStart === 1 ? "يوم 1 (الشهر العادي)" : `يوم ${monthStart}`;
+}
+
+function updateMonthStartPreview() {
+  const day = Number($("month-start-select").value);
+  $("month-start-preview").textContent = `الشهر الحالي يصير: ${previewPeriodLabel(day)}`;
+}
+
+$("open-month-start").addEventListener("click", () => {
+  const select = $("month-start-select");
+  select.innerHTML = "";
+  for (let day = 1; day <= MAX_MONTH_START; day++) {
+    const option = el("option", "", day === 1 ? "1 (الشهر العادي)" : String(day));
+    option.value = day;
+    select.appendChild(option);
+  }
+  select.value = monthStart;
+  updateMonthStartPreview();
+  monthStartDialog.showModal();
+});
+
+$("month-start-select").addEventListener("change", updateMonthStartPreview);
+
+$("month-start-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  setMonthStart($("month-start-select").value);
+  renderMonthStartStatus();
+  monthStartDialog.close();
+  render();
+  // البطاقات الأخرى (الملخص والرسم) تُحدَّث مع "data-changed"
+  document.dispatchEvent(new Event("data-changed"));
+  showToast(`الشهر يبدأ الآن يوم ${monthStart}`);
+});
+
+setupDialog(monthStartDialog);
+renderMonthStartStatus();

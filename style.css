@@ -3032,3 +3032,17 @@ html.locked body > :not(#lock-screen) {
 .lock-row-label {
   font-weight: 600;
 }
+
+/* ===== بداية الشهر ===== */
+
+.month-start-hint {
+  margin: 4px 0 14px;
+  line-height: 1.7;
+}
+
+.month-start-preview {
+  margin: 4px 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-strong);
+}
