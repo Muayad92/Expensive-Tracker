@@ -305,9 +305,10 @@ function renderJamiya(j) {
       const receive = iconText("button", "banknote", `استلمت ${formatMoney(info.payout)}`, "small-btn");
       receive.type = "button";
       receive.addEventListener("click", () => receiveJamiya(j, t));
-      status.append(el("span", "", `الشهر ${t.turn} (${monthLabel(info.months[t.turn - 1])})`), receive);
+      status.append(el("span", "", `الشهر ${t.turn} (${monthLabel(info.months[t.turn - 1])})`), receive, payoutSplit(j, info));
     } else if (t.turn) {
       status.appendChild(iconText("span", "star", `الشهر ${t.turn} (${monthLabel(info.months[t.turn - 1])}) · ستستلم ${formatMoney(info.payout)}`));
+      status.appendChild(payoutSplit(j, info));
     } else {
       status.appendChild(el("span", "muted", "لم يطلع بالقرعة بعد"));
       const setTurn = el("button", "link-btn", "حدّد الدور");
@@ -338,6 +339,11 @@ function renderJamiya(j) {
     box.appendChild(actions);
   }
   return box;
+}
+
+// مبلغ الاسم = ما يدفعه الباقون + قسطك لذاك الشهر (يبقى عندك وتضيفه للمبلغ)
+function payoutSplit(j, info) {
+  return el("span", "turn-split", `${formatMoney(info.payout - j.amount)} من الجماعة و${formatMoney(j.amount)} لديك (قسطك لذاك الشهر)`);
 }
 
 // تسجيل استلام مبلغ أحد أسمائي
