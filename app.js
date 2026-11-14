@@ -2155,6 +2155,8 @@ function parseBackup(text) {
       ...(["yes", "no", "skip"].includes(e.worth) ? { worth: e.worth } : {}),
       ...(typeof e.recurringId === "string" ? { recurringId: e.recurringId } : {}),
       ...(typeof e.jamiyaId === "string" ? { jamiyaId: e.jamiyaId } : {}),
+      ...(typeof e.jamiyaMonth === "string" && /^\d{4}-\d{2}$/.test(e.jamiyaMonth) ? { jamiyaMonth: e.jamiyaMonth } : {}),
+      ...(e.autoDate === true ? { autoDate: true } : {}),
       ...(typeof e.method === "string" ? { method: e.method } : {}),
       ...(typeof e.goalId === "string" ? { goalId: e.goalId } : {}),
     });

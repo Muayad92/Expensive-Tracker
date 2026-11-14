@@ -561,9 +561,9 @@ $("month-start-form").addEventListener("submit", (event) => {
   setMonthStart($("month-start-select").value);
   renderMonthStartStatus();
   monthStartDialog.close();
+  // save تعيد تواريخ أقساط السلفة التلقائية لبداية الشهر الجديدة، وتحدّث كل البطاقات
+  save();
   render();
-  // البطاقات الأخرى (الملخص والرسم) تُحدَّث مع "data-changed"
-  document.dispatchEvent(new Event("data-changed"));
   showToast(`الشهر يبدأ الآن يوم ${monthStart}`);
 });
 

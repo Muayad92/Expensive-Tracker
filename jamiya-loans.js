@@ -28,8 +28,9 @@ function monthsBetween(from, to) {
   return (y2 - y1) * 12 + (m2 - m1);
 }
 
+// شهر السلفة الحالي يمشي مع بداية الشهر (يوم الراتب): مع البداية يوم 20 يبقى قسط تشرين الأول هو المطلوب حتى 19 تشرين الثاني
 function thisMonth() {
-  return todayString().slice(0, 7);
+  return currentPeriod();
 }
 
 // "10/26" لشهر تشرين الأول 2026
@@ -380,30 +381,42 @@ function syncJamiyaExpenses() {
   }
 
   // نحذف ما لم يعد مدفوعاً، ونحدّث مبلغ واسم الموجود
+  // jamiyaMonth: شهر السلفة الذي يخصه القسط (التاريخ قد يكون في الشهر التالي إذا دفعته بعد بداية الشهر الميلادي)
   const kept = new Set();
   expenses = expenses.filter((e) => {
     if (!e.jamiyaId) return true;
-    const key = `${e.jamiyaId}|${e.date.slice(0, 7)}`;
+    const month = e.jamiyaMonth || e.date.slice(0, 7);
+    const key = `${e.jamiyaId}|${month}`;
     const j = wanted.get(key);
     if (!j || kept.has(key)) return false;
     kept.add(key);
     e.amount = j.amount;
     e.categoryId = JAMIYA_CATEGORY_ID;
     e.note = `قسط ${j.name}`;
+    e.jamiyaMonth = month;
+    // التاريخ الذي وضعه التطبيق (لا تاريخ دفع حقيقي) يتبع بداية الشهر: يوم 20 مثلاً بدل يوم 1
+    // (أقساط النسخ السابقة كانت تأخذ يوم 1 تلقائياً)
+    if (e.autoDate || e.date === `${month}-01`) {
+      e.date = periodStart(month);
+      e.autoDate = true;
+    }
     return true;
   });
 
-  // ونضيف الناقص: ما سُجّل للتو في هذا الشهر بتاريخ اليوم، والباقي بأول يوم في شهره
+  // ونضيف الناقص: ما سُجّل للتو للشهر الحالي بتاريخ اليوم، والباقي بأول يوم من فترته
   for (const [key, j] of wanted) {
     if (kept.has(key)) continue;
     const month = key.split("|")[1];
+    const paidNow = key === justPaidKey && month === currentPeriod();
     expenses.push({
       id: nextExpenseId(),
       amount: j.amount,
       categoryId: JAMIYA_CATEGORY_ID,
-      date: key === justPaidKey && month === today.slice(0, 7) ? today : `${month}-01`,
+      date: paidNow ? today : periodStart(month),
       note: `قسط ${j.name}`,
       jamiyaId: j.id,
+      jamiyaMonth: month,
+      ...(paidNow ? {} : { autoDate: true }),
     });
   }
 }
