@@ -310,7 +310,7 @@ function renderJamiya(j) {
       status.appendChild(iconText("span", "star", `الشهر ${t.turn} (${monthLabel(info.months[t.turn - 1])}) · ستستلم ${formatMoney(info.payout)}`));
       status.appendChild(payoutSplit(j, info));
     } else {
-      status.appendChild(el("span", "muted", "لم يطلع بالقرعة بعد"));
+      status.appendChild(el("span", "muted", "لم يظهر بالقرعة بعد"));
       const setTurn = el("button", "link-btn", "حدّد الدور");
       setTurn.type = "button";
       setTurn.addEventListener("click", () => openJamiyaForm(j));
@@ -568,7 +568,7 @@ function renderTurnSelects(turns) {
   for (let k = 0; k < shares; k++) {
     const label = el("label", "", shares > 1 ? `دور الاسم ${k + 1}` : "دوري في الاستلام");
     const select = el("select");
-    const unknown = el("option", "", "لم يطلع بعد (قرعة)");
+    const unknown = el("option", "", "لم يظهر بعد (قرعة)");
     unknown.value = "";
     select.appendChild(unknown);
     for (let i = 1; i <= members; i++) {
