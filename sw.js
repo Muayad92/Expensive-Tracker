@@ -1,5 +1,6 @@
 // يحفظ ملفات التطبيق في الجوال حتى يعمل بدون إنترنت
-const CACHE = "masarifi-v29";
+// يتغير مع كل تحديث (ومعه APP_VERSION في app.js)
+const CACHE = "masarifi-v30";
 const FILES = [
   "./",
   "index.html",

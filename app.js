@@ -1,3 +1,8 @@
+// رقم إصدار التطبيق: يظهر أسفل صفحة "المزيد" حتى تعرف أن التحديث وصل.
+// مع كل تحديث: ارفع الرقم وغيّر التاريخ، وارفع CACHE في sw.js
+const APP_VERSION = "1.0.0";
+const APP_RELEASED = "2026-11-15";
+
 // مفاتيح التخزين في المتصفح
 const STORAGE_KEY = "expenses";
 const CATEGORIES_KEY = "categories";
@@ -2044,6 +2049,7 @@ async function exportBackup() {
     app: BACKUP_APP_NAME,
     version: 3,
     exportedAt: new Date().toISOString(),
+    appVersion: APP_VERSION,
     categories,
     expenses,
     jamiyas,
@@ -2322,6 +2328,10 @@ function replaceWithImport(backup) {
   }
   categories = sortCategories(categories);
 }
+
+// رقم الإصدار أسفل صفحة "المزيد": 1.0.0 (15 Nov 2026)
+// (معزول من اليسار لليمين حتى لا ينقلب داخل النص العربي)
+$("app-version").textContent = `\u2066${APP_VERSION} (${new Date(`${APP_RELEASED}T00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })})\u2069`;
 
 $("export-backup").addEventListener("click", exportBackup);
 $("backup-now").addEventListener("click", exportBackup);
